@@ -1,0 +1,12 @@
+{% extends 'base.html' %}{% block body %}
+<h1>My stuff</h1>
+<p class="muted">Copy these from your inventory (gold and shards at the bottom, materials in the Materials tab). Shortcuts like 2.5m or 300k work.</p>
+<form method="post" class="stuff">
+{% for group, items in groups.items() %}
+  <fieldset><legend>{{ group }}</legend>
+  {% for r in items %}<label>{{ r.label }} <input name="{{ r.key }}" value="{{ '{:,}'.format(values[r.key]) if r.key in values else '' }}" inputmode="numeric"></label>{% endfor %}
+  </fieldset>
+{% endfor %}
+<button>Save</button>
+</form>
+{% endblock %}

@@ -1,6 +1,7 @@
 <div class="verdict v-{{ v.action|lower }}">
   <div class="big">{{ v.action }}{% if v.slot %} <span class="muted">· {{ slot_labels.get(v.slot, v.slot) }}</span>{% endif %}
   {% if v.action not in ('CUBE','SALVAGE','CHECK') %}<span class="score">{{ v.score }}/100</span>{% endif %}</div>
+  {% if v.headline %}<p class="headline">{{ v.why }}</p>{% endif %}
   <ul>{% for r in v.reasons %}<li>{{ r }}</li>{% endfor %}</ul>
   {% if v.missing %}<p>Missing: {{ v.missing|join(', ') }}</p>{% endif %}
   {% if v.reroll %}<p><strong>Mystic:</strong> {{ v.reroll }}</p>{% endif %}

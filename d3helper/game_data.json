@@ -1,0 +1,49 @@
+{
+  "_note": "Costs from community guides (patch 2.7.x). Entries with \"verify\": true weren't confirmed by two sources - check in game and edit freely.",
+  "resources": [
+    {"key": "gold",                  "label": "Gold",                     "group": "Currency"},
+    {"key": "blood_shards",          "label": "Blood Shards",             "group": "Currency"},
+    {"key": "highest_gr",            "label": "Highest Greater Rift",     "group": "Currency"},
+    {"key": "deaths_breath",         "label": "Death's Breath",           "group": "Cube"},
+    {"key": "forgotten_soul",        "label": "Forgotten Souls",          "group": "Cube"},
+    {"key": "reusable_parts",        "label": "Reusable Parts",           "group": "Salvage"},
+    {"key": "arcane_dust",           "label": "Arcane Dust",              "group": "Salvage"},
+    {"key": "veiled_crystal",        "label": "Veiled Crystal",           "group": "Salvage"},
+    {"key": "khanduran_rune",        "label": "Khanduran Rune (Act I)",   "group": "Bounty"},
+    {"key": "caldeum_nightshade",    "label": "Caldeum Nightshade (Act II)", "group": "Bounty"},
+    {"key": "arreat_war_tapestry",   "label": "Arreat War Tapestry (Act III)", "group": "Bounty"},
+    {"key": "corrupted_angel_flesh", "label": "Corrupted Angel Flesh (Act IV)", "group": "Bounty"},
+    {"key": "westmarch_holy_water",  "label": "Westmarch Holy Water (Act V)", "group": "Bounty"}
+  ],
+  "recipes": {
+    "extract":      {"name": "Extract Legendary Power", "verify": true,
+                     "cost": {"deaths_breath": 5, "khanduran_rune": 1, "caldeum_nightshade": 1, "arreat_war_tapestry": 1, "corrupted_angel_flesh": 1, "westmarch_holy_water": 1}},
+    "reforge":      {"name": "Reforge Legendary",
+                     "cost": {"forgotten_soul": 50, "khanduran_rune": 5, "caldeum_nightshade": 5, "arreat_war_tapestry": 5, "corrupted_angel_flesh": 5, "westmarch_holy_water": 5}},
+    "upgrade_rare": {"name": "Upgrade Rare Item", "verify": true,
+                     "cost": {"deaths_breath": 25, "reusable_parts": 50, "arcane_dust": 50, "veiled_crystal": 50}},
+    "convert_set":  {"name": "Convert Set Item",
+                     "cost": {"deaths_breath": 10, "forgotten_soul": 10}}
+  },
+  "kadala": {"armor": 25, "ring": 50, "amulet": 100, "weapon": 75},
+  "shard_cap": {"base": 500, "per_gr": 10, "verify": true},
+  "sources": {
+    "gold":                  "Nephalem Rifts - grab the gold piles",
+    "blood_shards":          "Greater Rifts (more shards the higher you go) and bounty Horadric Caches",
+    "deaths_breath":         "Nephalem Rifts at the highest Torment you clear quickly - elites drop Death's Breath",
+    "forgotten_soul":        "salvaging legendaries you don't need (the overlay marks them SALVAGE)",
+    "reusable_parts":        "salvaging white items",
+    "arcane_dust":           "salvaging blue items",
+    "veiled_crystal":        "salvaging yellow items",
+    "khanduran_rune":        "Act I bounties - finish the act for a Horadric Cache",
+    "caldeum_nightshade":    "Act II bounties - finish the act for a Horadric Cache",
+    "arreat_war_tapestry":   "Act III bounties - finish the act for a Horadric Cache",
+    "corrupted_angel_flesh": "Act IV bounties - finish the act for a Horadric Cache",
+    "westmarch_holy_water":  "Act V bounties - finish the act for a Horadric Cache"
+  },
+  "cube_item_types": {
+    "Ambo's Pride": "weapon",
+    "Mantle of Channeling": "shoulders",
+    "Obsidian Ring of the Zodiac": "ring"
+  }
+}

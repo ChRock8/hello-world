@@ -33,11 +33,13 @@ REQUIRE_GAME = os.environ.get("D3H_REQUIRE_GAME", "1") == "1"  # only read while
 GAME_TITLE = os.environ.get("D3H_GAME_TITLE", "Diablo III")
 OCR_SCALE = float(os.environ.get("D3H_OCR_SCALE", "1.0"))  # try 1.5 if names are misread
 CARD_POS = os.environ.get("D3H_CARD_POS", "auto")          # "auto" or fixed "x,y"
+CARD_MODE = os.environ.get("D3H_CARD_MODE", "simple")      # simple (one line) or full (all details)
 DEBUG = os.environ.get("D3H_DEBUG", "0") == "1"            # save what the overlay saw to data/debug
 
 # Hotkeys (pynput format).
 HOTKEY = os.environ.get("D3H_HOTKEY", "<f9>")              # snapshot / ask Claude
-KEY_TOGGLE = os.environ.get("D3H_KEY_TOGGLE", "<f8>")
+KEY_PLAN = os.environ.get("D3H_KEY_PLAN", "<f7>")          # show next steps in game
+KEY_TOGGLE = os.environ.get("D3H_KEY_TOGGLE", "<f8>")      # simple -> full -> off
 KEY_SAVE = os.environ.get("D3H_KEY_SAVE", "<f10>")
 KEY_EQUIP = os.environ.get("D3H_KEY_EQUIP", "<f11>")
 

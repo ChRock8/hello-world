@@ -1,5 +1,21 @@
 {% extends 'base.html' %}{% block body %}
 <h1>{{ build.name }} <span class="muted">{{ done }}/{{ rows|length }} slots done</span></h1>
+
+<section class="plan">
+  <h2>Next steps <span class="muted">· F7 shows these in game</span></h2>
+  {% for w in plan.warnings %}<div class="flash">{{ w }}</div>{% endfor %}
+  {% if not has_resources %}<p class="flash">Enter your gold, shards and materials in <a href="{{ url_for('stuff') }}">My stuff</a> to see what you can afford and what to farm.</p>{% endif %}
+  <ol>
+  {% for st in plan.steps[:6] %}
+    <li class="{{ 'ready' if st.ready else 'blocked' }}"><strong>{{ st.title }}</strong> <span class="muted">{{ st.why }}</span>
+      {% if st.options %}<ul>{% for o in st.options %}<li>{{ o.text }}{% set t = short_text(o) %}{% if t %} <span class="{{ 'ok' if o.tries else 'need' }}">{{ t }}</span>{% endif %}</li>{% endfor %}</ul>{% endif %}
+    </li>
+  {% endfor %}
+  </ol>
+  {% for f in plan.farm %}<p class="farm">🌾 {{ f }}</p>{% endfor %}
+</section>
+
+<h2>Gear</h2>
 <p class="muted">{{ build.source_note }}</p>
 <table>
 <tr><th>Slot</th><th>Target</th><th>Status</th><th>Current</th><th>Wanted stats</th></tr>
@@ -15,7 +31,7 @@
 </tr>
 {% endfor %}
 </table>
-<p class="muted">* = must have</p>
+<p class="muted">* = must have · "done" = ancient and meets your <a href="{{ url_for('goals_page') }}">goals</a></p>
 
 <h2>Kanai's Cube</h2>
 <div class="cards">

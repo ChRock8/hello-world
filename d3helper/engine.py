@@ -8,8 +8,8 @@ import threading
 import time
 from dataclasses import dataclass, field
 
-from . import builds, capture, config, db, ocr, tooltip, vision, winutil
-from .evaluator import Verdict, evaluate
+from . import builds, capture, config, db, ocr, planner, tooltip, vision, winutil
+from .evaluator import Verdict, evaluate, merged_goals
 
 JITTER_PX = 4    # ignore tiny mouse wobble
 MOVE_HIDE_PX = 12  # moved this far from where we read -> hide the card
@@ -31,6 +31,7 @@ class Engine:
         self.q = ui_queue
         self.grab, self.read_text = grab, read_text
         self.cursor, self.focused_title = cursor, focused_title
+        self.mode = config.CARD_MODE if config.CARD_MODE in ("simple", "full") else "simple"
         self.enabled = True
         self.current: Reading | None = None
         self._stop = threading.Event()
@@ -42,12 +43,19 @@ class Engine:
         with db.connect() as con:
             equipped = db.equipped_by_slot(con)
             cube = db.cube_powers(con)
+            goals = merged_goals(build, db.goal_overrides(con))
         # What the game shows as equipped right now beats what we stored.
         for ci in compare:
-            cv = evaluate(build, ci, {}, cube)
+            cv = evaluate(build, ci, {}, cube, goals)
             if cv.slot:
                 equipped[cv.slot] = {**ci, "score": cv.score}
-        return Reading(item, evaluate(build, item, equipped, cube), box, screen, source, compare)
+        return Reading(item, evaluate(build, item, equipped, cube, goals), box, screen, source, compare)
+
+    def plan(self) -> planner.Plan:
+        build = builds.load_build(config.ACTIVE_BUILD)
+        with db.connect() as con:
+            return planner.make_plan(build, db.equipped_by_slot(con), db.list_items(con), db.cube_powers(con),
+                                     db.get_resources(con), merged_goals(build, db.goal_overrides(con)))
 
     def analyze(self, img, cursor) -> Reading | None:
         lines = self.read_text(img, config.OCR_SCALE)
@@ -107,15 +115,25 @@ class Engine:
             return
         if reading:
             self.current = reading
-            self.q.put(("show", reading))
+            self.q.put(("show", reading, self.mode))
         elif self.current:
             self._hide()
 
     # ---- hotkeys -------------------------------------------------------
     def toggle(self):
-        self.enabled = not self.enabled
+        """F8 cycles: simple card -> detailed card -> overlay off."""
+        if not self.enabled:
+            self.enabled, self.mode = True, "simple"
+        elif self.mode == "simple":
+            self.mode = "full"
+        else:
+            self.enabled = False
         self._hide()
-        self.q.put(("toast", "Overlay on" if self.enabled else "Overlay off (F8 to turn back on)"))
+        msg = {"simple": "Overlay: simple", "full": "Overlay: details"}[self.mode] if self.enabled else "Overlay off (F8 to turn back on)"
+        self.q.put(("toast", msg))
+
+    def show_plan(self):
+        self.q.put(("plan", self.plan()))
 
     def _store(self, equip: bool):
         r = self.current
@@ -173,7 +191,7 @@ class Engine:
         screen = previous.screen if previous else (1920, 1080)
         compare = previous.compare if previous else []
         self.current = self.judge(item, compare, box, screen, source="claude")
-        self.q.put(("show", self.current))
+        self.q.put(("show", self.current, "full"))
 
     # ---- debugging -----------------------------------------------------
     def _dump(self, img, lines, hovered):

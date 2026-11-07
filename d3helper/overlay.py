@@ -6,7 +6,7 @@ otherwise Windows can't draw anything over it.
 import queue
 import tkinter as tk
 
-from . import config, winutil
+from . import config, planner, winutil
 from .overlay_layout import place_card
 
 BG = "#15110d"
@@ -30,12 +30,14 @@ def _nb(text: str) -> str:
 
 
 class Overlay:
-    def __init__(self, ui_queue: queue.Queue, hotkey_hint: str = ""):
+    def __init__(self, ui_queue: queue.Queue, hints: dict | None = None):
         self.q = ui_queue
-        self.hint = hotkey_hint
+        self.hints = hints or {}
         self.root = tk.Tk()
         self.root.withdraw()
         self.card = self._window(alpha=0.94)
+        self.plan_win = self._window(alpha=0.94)
+        self._plan_job = None
         self.toast = self._window(alpha=0.9)
         self.toast_label = tk.Label(self.toast, bg=BG, fg=FG, font=(FONT, 11), padx=14, pady=8)
         self.toast_label.pack()
@@ -66,7 +68,9 @@ class Overlay:
             while True:
                 msg = self.q.get_nowait()
                 if msg[0] == "show":
-                    self.show_reading(msg[1])
+                    self.show_reading(msg[1], msg[2] if len(msg) > 2 else "full")
+                elif msg[0] == "plan":
+                    self.show_plan(msg[1])
                 elif msg[0] == "hide":
                     self.card.withdraw()
                 elif msg[0] == "toast":
@@ -78,7 +82,7 @@ class Overlay:
             pass
         self.root.after(40, self._poll)
 
-    def show_reading(self, r):
+    def show_reading(self, r, mode="full"):
         v = r.verdict
         color = ACTION_COLORS.get(v.action, FG)
         for child in self.card.winfo_children():
@@ -92,10 +96,16 @@ class Overlay:
         tk.Label(top, text=v.action, fg=color, bg=BG, font=(FONT, 16, "bold")).pack(side="left")
         if v.action not in ("CUBE", "SALVAGE", "CHECK"):
             tk.Label(top, text=f"{v.score}/100", fg=FG, bg=BG, font=(FONT, 14, "bold")).pack(side="right", padx=(16, 0))
-        tk.Label(f, text=ACTION_HINT.get(v.action, ""), fg=MUTED, bg=BG, font=(FONT, 9)).pack(anchor="w")
+        tk.Label(f, text=v.why or ACTION_HINT.get(v.action, ""), fg=FG, bg=BG, font=(FONT, 11),
+                 wraplength=380, justify="left").pack(anchor="w")
 
         quality = r.item.get("quality", "normal")
         title = (v.name or r.item.get("name", "?")) + ("" if quality == "normal" else f"  ({quality})")
+        if mode == "simple":
+            tk.Label(f, text=title, fg=MUTED, bg=BG, font=(FONT, 9)).pack(anchor="w")
+            tk.Label(f, text=self.hints.get("simple", ""), fg=MUTED, bg=BG, font=(FONT, 8)).pack(anchor="w", pady=(4, 0))
+            self._place_card(r)
+            return
         tk.Label(f, text=title, fg=FG, bg=BG, font=(FONT, 11, "bold")).pack(anchor="w", pady=(4, 0))
 
         if v.have:
@@ -104,13 +114,18 @@ class Overlay:
         if v.missing:
             tk.Label(f, text="   ".join("✗\u00a0" + _nb(m) for m in v.missing), fg="#e88a8a", bg=BG, font=(FONT, 10),
                      wraplength=380, justify="left").pack(anchor="w")
-        if v.reroll:
+        if v.below_goal:
+            tk.Label(f, text="Below goal: " + ", ".join(v.below_goal), fg="#e88a8a", bg=BG, font=(FONT, 10),
+                     wraplength=380, justify="left").pack(anchor="w")
+        if v.reroll and v.action != "KEEP":
             tk.Label(f, text=f"Mystic: {v.reroll}", fg="#e0b04f", bg=BG, font=(FONT, 10)).pack(anchor="w")
         for reason in v.reasons[:2]:
-            tk.Label(f, text=reason, fg=FG, bg=BG, font=(FONT, 10), wraplength=380, justify="left").pack(anchor="w")
-        foot = self.hint + ("   · read by Claude" if r.source == "claude" else "")
+            tk.Label(f, text=reason, fg=MUTED, bg=BG, font=(FONT, 9), wraplength=380, justify="left").pack(anchor="w")
+        foot = self.hints.get("full", "") + ("   · read by Claude" if r.source == "claude" else "")
         tk.Label(f, text=foot, fg=MUTED, bg=BG, font=(FONT, 8)).pack(anchor="w", pady=(6, 0))
+        self._place_card(r)
 
+    def _place_card(self, r):
         self.card.update_idletasks()
         cw, ch = self.card.winfo_reqwidth(), self.card.winfo_reqheight()
         if config.CARD_POS != "auto":
@@ -119,6 +134,39 @@ class Overlay:
             x, y = place_card(r.box, cw, ch, *r.screen)
         self.card.geometry(f"+{x}+{y}")
         self._show(self.card)
+
+    def show_plan(self, plan, ms=15000):
+        """Top-centre card: the next three steps and what to farm."""
+        if self.plan_win.winfo_viewable():
+            self.plan_win.withdraw()  # F7 again closes it
+            return
+        self.card.withdraw()
+        for child in self.plan_win.winfo_children():
+            child.destroy()
+        self.plan_win.configure(highlightbackground="#e0b04f")
+        f = tk.Frame(self.plan_win, bg=BG, padx=14, pady=10)
+        f.pack()
+        tk.Label(f, text="Next steps", fg="#e0b04f", bg=BG, font=(FONT, 14, "bold")).pack(anchor="w")
+        for w in plan.warnings:
+            tk.Label(f, text=w, fg="#e88a8a", bg=BG, font=(FONT, 10), wraplength=520, justify="left").pack(anchor="w")
+        for i, step in enumerate(plan.steps[:3], 1):
+            tk.Label(f, text=f"{i}. {step.title}", fg=FG if step.ready else MUTED, bg=BG,
+                     font=(FONT, 11, "bold")).pack(anchor="w", pady=(6, 0))
+            opt = next((o for o in step.options if o.tries is None or o.tries), step.options[0] if step.options else None)
+            detail = step.why if not opt else f"{opt.text}  {planner.short_text(opt)}".strip()
+            tk.Label(f, text=detail, fg=MUTED, bg=BG, font=(FONT, 10), wraplength=520, justify="left").pack(anchor="w")
+        for tip in plan.farm[:2]:
+            tk.Label(f, text="Farm: " + tip.removeprefix("Farm "), fg="#7fd18f", bg=BG, font=(FONT, 10),
+                     wraplength=520, justify="left").pack(anchor="w", pady=(6, 0))
+        tk.Label(f, text="F7 to close · full list on the dashboard", fg=MUTED, bg=BG, font=(FONT, 8)).pack(anchor="w", pady=(8, 0))
+        self.plan_win.update_idletasks()
+        sw = self.root.winfo_screenwidth()
+        w = self.plan_win.winfo_reqwidth()
+        self.plan_win.geometry(f"+{(sw - w) // 2}+{int(self.root.winfo_screenheight() * 0.06)}")
+        self._show(self.plan_win)
+        if self._plan_job:
+            self.root.after_cancel(self._plan_job)
+        self._plan_job = self.root.after(ms, self.plan_win.withdraw)
 
     def show_toast(self, text, ms=2500):
         self.toast_label.configure(text=text)

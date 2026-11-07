@@ -15,3 +15,10 @@ button{background:var(--gold);color:#1a140c;border:0;cursor:pointer;font-weight:
 .err{color:#f08a8a}.cards{display:flex;flex-wrap:wrap;gap:12px}.card{background:var(--panel);padding:10px;border-radius:6px;width:260px;display:flex;flex-direction:column;gap:6px}
 .thumb{width:100%;border-radius:4px}kbd{background:var(--line);padding:1px 6px;border-radius:3px}
 @media(max-width:700px){.two{grid-template-columns:1fr}}
+.plan{background:var(--panel);padding:8px 16px 12px;border-radius:6px;border-left:3px solid var(--gold)}
+.plan ol{padding-left:20px}.plan li{margin:6px 0}.plan li.blocked>strong{color:var(--muted)}
+.ok{color:var(--green);font-size:13px}.need{color:#f08a8a;font-size:13px}.farm{margin:6px 0}
+.pill.done{background:#1f5a2c}.headline{font-size:16px;margin:6px 0}
+.stuff fieldset{border:1px solid var(--line);border-radius:6px;margin:0 0 12px;display:flex;flex-wrap:wrap;gap:10px}
+.stuff label{display:flex;flex-direction:column;font-size:13px;gap:2px}.stuff input{width:150px}
+.goals{display:flex;flex-wrap:wrap;gap:14px}.goals label{display:flex;gap:6px;align-items:center}

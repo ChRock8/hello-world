@@ -1,0 +1,18 @@
+{% extends 'base.html' %}{% block body %}
+<h1>Stat goals</h1>
+<p class="muted">The lowest roll you're happy with. An ancient item with every must-have stat at or above its goal marks the slot <strong>done</strong>, and the overlay stops bugging you about it. Defaults are 70% of the way to a perfect roll; leave blank to ignore a stat.</p>
+<form method="post">
+<table>
+<tr><th>Slot</th><th>Goals</th></tr>
+{% for slot, spec, fields in rows %}
+<tr><td>{{ slot_labels[slot] }}<div class="muted">{{ spec.item or '(flex)' }}</div></td>
+<td class="goals">{% for k, w, rng, val in fields %}
+  <label>{{ label(k) }}{% if w >= 3 %}*{% endif %}
+    <input name="{{ slot }}|{{ k }}" value="{{ val if val is not none else '' }}" size="5">
+    <span class="muted">{{ '%g' % rng[0] }}–{{ '%g' % rng[1] }}</span></label>
+{% endfor %}</td></tr>
+{% endfor %}
+</table>
+<div class="row"><button>Save goals</button> <button name="reset" value="1" class="danger">Reset to defaults</button></div>
+</form>
+{% endblock %}

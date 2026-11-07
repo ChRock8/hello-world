@@ -3,8 +3,10 @@ from pathlib import Path
 
 from flask import Flask, abort, flash, redirect, render_template, request, send_file, url_for
 
-from . import affixes, blizzard, builds, config, db, vision
-from .evaluator import evaluate
+import re
+
+from . import affixes, blizzard, builds, config, db, planner, vision
+from .evaluator import check_goals, evaluate, merged_goals, qrank
 
 app = Flask(__name__)
 app.secret_key = "d3helper-local"
@@ -14,14 +16,20 @@ def active_build():
     return builds.load_build(config.ACTIVE_BUILD)
 
 
+def goals_for(con):
+    return merged_goals(active_build(), db.goal_overrides(con))
+
+
 def _evaluate_and_store(con, item_id):
     item = db.get_item(con, item_id)
     equipped = db.equipped_by_slot(con)
     if item.get("equipped"):
         equipped.pop(item.get("slot"), None)  # don't compare an item with itself
-    v = evaluate(active_build(), item, equipped, db.cube_powers(con))
+    v = evaluate(active_build(), item, equipped, db.cube_powers(con), goals_for(con))
     if item.get("equipped"):
         v.action = "EQUIPPED"
+        done = qrank(item) >= 1 and v.meets_goals
+        v.headline = "You're wearing this - slot done ✓" if done else "You're wearing this."
     db.update_item(con, item_id, slot=item.get("slot") or v.slot, score=v.score, verdict=v.action)
     return v
 
@@ -59,23 +67,26 @@ def dashboard():
         equipped = db.equipped_by_slot(con)
         items = db.list_items(con)
         cube = db.cube_powers(con)
+        goals = goals_for(con)
+        resources = db.get_resources(con)
+    plan = planner.make_plan(build, equipped, items, cube, resources, goals)
     rows = []
     for slot in builds.SLOTS:
         spec = build["slots"].get(slot, {})
         target = spec.get("item")
         eq = equipped.get(slot)
         owned = [i for i in items if target and i["name"].lower() == target.lower() and not i["equipped"]]
-        if eq and target and eq["name"].lower() == target.lower():
-            status = "equipped"
-        elif eq and not target:
-            status = "equipped"
+        if eq and (not target or eq["name"].lower() == target.lower()):
+            ok = qrank(eq) >= 1 and check_goals(spec.get("affixes", {}), eq.get("affixes") or {}, goals.get(slot, {}))[0]
+            status = "done" if ok else "equipped"
         elif owned:
             status = "owned"
         else:
             status = "missing"
         rows.append({"slot": slot, "spec": spec, "equipped": eq, "owned": owned, "status": status})
-    done = sum(r["status"] == "equipped" for r in rows)
-    return render_template("dashboard.html", rows=rows, done=done, cube=cube)
+    done = sum(r["status"] == "done" for r in rows)
+    return render_template("dashboard.html", rows=rows, done=done, cube=cube, plan=plan,
+                           short_text=planner.short_text, has_resources=bool(resources))
 
 
 @app.post("/cube/toggle")
@@ -94,7 +105,7 @@ def check():
                 "quality": request.form.get("quality", "normal"),
                 "affixes": affixes.parse(request.form.get("affixes", ""))}
         with db.connect() as con:
-            result = evaluate(active_build(), item, db.equipped_by_slot(con), db.cube_powers(con))
+            result = evaluate(active_build(), item, db.equipped_by_slot(con), db.cube_powers(con), goals_for(con))
         if request.form.get("save"):
             with db.connect() as con:
                 item_id = db.add_item(con, name=item["name"], type=item["type"], quality=item["quality"],
@@ -206,3 +217,54 @@ def import_gear():
     except Exception as e:
         error = f"Import failed: {e}"
     return render_template("import.html", disabled=False, heroes=heroes, tag=tag, error=error)
+
+
+def parse_amount(text: str) -> int:
+    """'1,234' / '2.5m' / '300k' / '1.2b' -> int."""
+    t = (text or "").strip().lower().replace(",", "").replace(" ", "")
+    m = re.fullmatch(r"(\d+(?:\.\d+)?)([kmb]?)", t)
+    if not m:
+        return 0
+    mult = {"": 1, "k": 1_000, "m": 1_000_000, "b": 1_000_000_000}[m.group(2)]
+    return int(float(m.group(1)) * mult)
+
+
+@app.route("/stuff", methods=["GET", "POST"])
+def stuff():
+    with db.connect() as con:
+        if request.method == "POST":
+            db.set_resources(con, {r["key"]: parse_amount(request.form.get(r["key"], ""))
+                                   for r in planner.RESOURCES})
+            flash("Saved. Next steps updated.")
+            return redirect(url_for("dashboard"))
+        values = db.get_resources(con)
+    groups: dict = {}
+    for r in planner.RESOURCES:
+        groups.setdefault(r["group"], []).append(r)
+    return render_template("stuff.html", groups=groups, values=values)
+
+
+@app.route("/goals", methods=["GET", "POST"])
+def goals_page():
+    build = active_build()
+    with db.connect() as con:
+        if request.method == "POST":
+            if request.form.get("reset"):
+                db.clear_goals(con)
+                flash("Goals reset to defaults.")
+            else:
+                for key, val in request.form.items():
+                    if "|" in key:
+                        slot, affix = key.split("|", 1)
+                        db.set_goal(con, slot, affix, float(val) if val.strip() else None)
+                flash("Goals saved.")
+            return redirect(url_for("goals_page"))
+        goals = goals_for(con)
+    rows = []
+    for slot in builds.SLOTS:
+        spec = build["slots"].get(slot, {})
+        fields = [(k, w, affixes.roll_range(k, slot), goals.get(slot, {}).get(k))
+                  for k, w in spec.get("affixes", {}).items() if w >= 2 and affixes.roll_range(k, slot)]
+        if fields:
+            rows.append((slot, spec, fields))
+    return render_template("goals.html", rows=rows)

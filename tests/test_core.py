@@ -43,11 +43,48 @@ def test_ancient_upgrade_over_normal():
     assert v.action == "UPGRADE"
 
 
-def test_worse_copy_is_keep_not_upgrade():
+def test_worse_copy_is_salvage():
     current = {"hands": {"name": "Gauntlet of the Wastes", "quality": "ancient", "score": 90}}
     v = evaluate(BUILD, {"name": "Gauntlet of the Wastes", "quality": "ancient",
                          "affixes": affixes.parse("str vit")}, current)
-    assert v.action == "KEEP"
+    assert v.action == "SALVAGE" and "worse than yours" in v.headline
+
+
+def test_keep_when_one_reroll_beats_current():
+    current = {"hands": {"name": "Gauntlet of the Wastes", "quality": "ancient", "score": 80}}
+    v = evaluate(BUILD, {"name": "Gauntlet of the Wastes", "quality": "ancient",
+                         "affixes": affixes.parse("chc chd str vit")}, current)
+    assert v.action == "KEEP" and "Vitality → Attack Speed" in v.headline
+
+
+def test_roll_quality_counts():
+    lo = evaluate(BUILD, {"name": "Gauntlet of the Wastes", "affixes": {"chc": 8.0, "chd": 35.0}})
+    hi = evaluate(BUILD, {"name": "Gauntlet of the Wastes", "affixes": {"chc": 10.0, "chd": 50.0}})
+    assert hi.score > lo.score
+
+
+def test_goals_and_done_slot():
+    perfect = {"chc": 10.0, "chd": 50.0, "str": 900, "ias": 7.0, "area_dmg": 24.0}
+    v = evaluate(BUILD, {"name": "Gauntlet of the Wastes", "quality": "ancient", "affixes": {**perfect, "chc": 8.1}})
+    assert not v.meets_goals and v.below_goal == ["Crit Chance 8.1 < 9.4"]
+    # Wearing an ancient pair that meets every goal -> any other copy is salvage.
+    current = {"hands": {"name": "Gauntlet of the Wastes", "quality": "ancient", "affixes": {**perfect, "area_dmg": None}}}
+    v = evaluate(BUILD, {"name": "Gauntlet of the Wastes", "quality": "ancient",
+                         "affixes": {"chc": 9.6, "chd": 49.0, "str": 800, "ias": 6.0}}, current)
+    assert v.action == "SALVAGE" and "slot is done" in v.headline
+
+
+def test_custom_goal_override():
+    from d3helper.evaluator import merged_goals
+    goals = merged_goals(BUILD, {"hands": {"chc": 9.9}})
+    v = evaluate(BUILD, {"name": "Gauntlet of the Wastes", "affixes": {"chc": 9.5, "chd": 50.0}}, goals=goals)
+    assert v.below_goal == ["Crit Chance 9.5 < 9.9"]
+
+
+def test_headline_always_set():
+    for item in [{"name": "Ambo's Pride"}, {"name": "Random", "type": "Rare Gloves", "rarity": "rare"},
+                 {"name": "Immortal King's Triumph", "type": "Set Helm"}, {"name": "Focus"}, {"name": "???"}]:
+        assert evaluate(BUILD, {"affixes": {}, **item}).headline
 
 
 def test_off_build_legendary_salvage():
@@ -72,3 +109,9 @@ def test_blizzard_parse_items():
     out = {i["slot"]: i for i in blizzard.parse_items(data)}
     assert out["head"]["quality"] == "ancient" and "Strength" in out["head"]["raw_text"]
     assert out["ring1"]["name"] == "Focus"
+
+
+def test_why_drops_repeated_action_word():
+    from d3helper.evaluator import Verdict
+    assert Verdict("SALVAGE", headline="Salvage - your gloves slot is done.").why == "Your gloves slot is done."
+    assert Verdict("UPGRADE", headline="Wear it - ancient beats yours.").why == "Wear it - ancient beats yours."

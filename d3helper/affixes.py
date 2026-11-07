@@ -122,3 +122,46 @@ def parse(text: str) -> dict:
 
 def label(key: str) -> str:
     return LABELS.get(key, key)
+
+
+# Typical level-70 roll ranges (min, max). Slot groups: ring, weapon, or the slot name; "*" = any.
+# Used for roll quality and default goals. Primary stats (Str/Vit) vary too much to list.
+ROLL_RANGES = {
+    "chc": {"hands": (8, 10), "neck": (8, 10), "head": (4.5, 6), "bracers": (4.5, 6), "ring": (4.5, 6)},
+    "chd": {"hands": (35, 50), "ring": (31, 50), "neck": (51, 100)},
+    "ias": {"*": (5, 7)},
+    "cdr": {"*": (5, 8)},
+    "rcr": {"*": (5, 8)},
+    "area_dmg": {"*": (18, 24)},
+    "skill:whirlwind": {"*": (10, 15)},
+    "skill:rend": {"*": (10, 15)},
+    "physical_pct": {"*": (15, 20)},
+    "life_pct": {"*": (10, 15)},
+    "damage_pct": {"*": (6, 10)},
+}
+
+
+def _slot_group(slot: str) -> str:
+    if slot in ("ring1", "ring2"):
+        return "ring"
+    if slot in ("main_hand", "off_hand"):
+        return "weapon"
+    return slot
+
+
+def roll_range(key: str, slot: str):
+    ranges = ROLL_RANGES.get(key, {})
+    return ranges.get(_slot_group(slot)) or ranges.get("*")
+
+
+def roll_quality(key: str, value, slot: str) -> float:
+    """0.0 = worst possible roll, 1.0 = perfect. Unknown values count as perfect."""
+    rng = roll_range(key, slot)
+    if value is None or not rng:
+        return 1.0
+    lo, hi = rng
+    return max(0.0, min(1.0, (value - lo) / (hi - lo)))
+
+
+def fmt(value) -> str:
+    return f"{value:g}" if isinstance(value, (int, float)) else str(value)

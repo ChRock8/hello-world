@@ -25,10 +25,14 @@ def run_overlay():
 
     q = queue.Queue()
     engine = Engine(q)
-    hint = (f"{_k(config.KEY_SAVE)} save · {_k(config.KEY_EQUIP)} I'm wearing it · "
-            f"{_k(config.HOTKEY)} ask Claude · {_k(config.KEY_TOGGLE)} hide")
-    overlay = Overlay(q, hint)
+    hints = {
+        "full": (f"{_k(config.KEY_SAVE)} save · {_k(config.KEY_EQUIP)} I'm wearing it · "
+                 f"{_k(config.HOTKEY)} ask Claude · {_k(config.KEY_TOGGLE)} hide"),
+        "simple": f"{_k(config.KEY_TOGGLE)} details · {_k(config.KEY_SAVE)} save · {_k(config.KEY_EQUIP)} wearing it",
+    }
+    overlay = Overlay(q, hints)
     capture.start_hotkeys({
+        config.KEY_PLAN: engine.show_plan,
         config.KEY_TOGGLE: engine.toggle,
         config.HOTKEY: engine.ask_claude,
         config.KEY_SAVE: engine.save_hovered,
@@ -36,7 +40,7 @@ def run_overlay():
     })
     threading.Thread(target=engine.run, daemon=True).start()
     signal.signal(signal.SIGINT, lambda *_: overlay.quit())
-    q.put(("toast", "D3 Helper overlay on. Hover an item in game."))
+    q.put(("toast", f"D3 Helper on. Hover an item, or press {_k(config.KEY_PLAN)} for next steps."))
     _keepalive(overlay)
     overlay.run()
     engine.stop()

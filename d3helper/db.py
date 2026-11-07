@@ -30,6 +30,8 @@ CREATE TABLE IF NOT EXISTS snapshots (
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
 );
 CREATE TABLE IF NOT EXISTS cube (name TEXT PRIMARY KEY);
+CREATE TABLE IF NOT EXISTS resources (key TEXT PRIMARY KEY, value INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE IF NOT EXISTS goals (slot TEXT, affix TEXT, value REAL, PRIMARY KEY (slot, affix));
 """
 
 
@@ -130,3 +132,32 @@ def get_snapshot(con, snap_id: int):
 
 def set_snapshot_status(con, snap_id: int, status: str, error: str = ""):
     con.execute("UPDATE snapshots SET status = ?, error = ? WHERE id = ?", (status, error, snap_id))
+
+
+def get_resources(con) -> dict:
+    return {r[0]: r[1] for r in con.execute("SELECT key, value FROM resources")}
+
+
+def set_resources(con, values: dict):
+    for k, v in values.items():
+        con.execute("INSERT INTO resources (key, value) VALUES (?, ?) "
+                    "ON CONFLICT(key) DO UPDATE SET value = excluded.value", (k, int(v)))
+
+
+def goal_overrides(con) -> dict:
+    out: dict = {}
+    for slot, affix, value in con.execute("SELECT slot, affix, value FROM goals"):
+        out.setdefault(slot, {})[affix] = value
+    return out
+
+
+def set_goal(con, slot: str, affix: str, value):
+    if value is None:
+        con.execute("DELETE FROM goals WHERE slot = ? AND affix = ?", (slot, affix))
+    else:
+        con.execute("INSERT INTO goals (slot, affix, value) VALUES (?, ?, ?) "
+                    "ON CONFLICT(slot, affix) DO UPDATE SET value = excluded.value", (slot, affix, value))
+
+
+def clear_goals(con):
+    con.execute("DELETE FROM goals")

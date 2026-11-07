@@ -60,7 +60,7 @@ def test_engine_upgrade_vs_onscreen_equipped(engine):
     r = engine.analyze(fs.image(), fs.CURSOR)
     v = r.verdict
     assert v.name == "Gauntlet of the Wastes"      # OCR typo fixed
-    assert v.action == "UPGRADE" and v.slot == "hands" and v.score == 91
+    assert v.action == "UPGRADE" and v.slot == "hands" and v.score == 87
     assert "Area Damage" in v.missing
 
 
@@ -97,3 +97,24 @@ def test_hover_loop_reads_once_then_hides_on_move(engine, monkeypatch):
     time.sleep(0.3)
     engine.stop()
     assert engine.q.get(timeout=1)[0] == "hide"
+
+
+def test_f8_cycles_simple_full_off(engine):
+    assert engine.mode == "simple" and engine.enabled
+    engine.toggle()
+    assert engine.mode == "full" and engine.enabled
+    engine.toggle()
+    assert not engine.enabled
+    engine.toggle()
+    assert engine.enabled and engine.mode == "simple"
+
+
+def test_f7_sends_plan(engine):
+    engine.show_plan()
+    kind, plan = engine.q.get()
+    assert kind == "plan" and plan.steps[0].title == "Get Helm of the Wastes"
+
+
+def test_simple_headline_for_overlay(engine):
+    r = engine.analyze(fs.image(), fs.CURSOR)
+    assert r.verdict.headline == "Wear it - ancient beats your normal one."
