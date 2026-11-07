@@ -1,4 +1,5 @@
 """Decide what to do with an item for the active build."""
+import difflib
 from dataclasses import dataclass, field
 
 from .affixes import label
@@ -23,11 +24,24 @@ class Verdict:
     score: int = 0
     reasons: list = field(default_factory=list)
     missing: list = field(default_factory=list)
+    have: list = field(default_factory=list)
     reroll: str | None = None
+    name: str = ""
 
 
 def _norm(name: str) -> str:
     return "".join(c for c in (name or "").lower() if c.isalnum())
+
+
+def canonical_name(build: dict, name: str) -> str:
+    """Snap a slightly-misread name (OCR) to a build or cube item name."""
+    known = [s["item"] for s in build["slots"].values() if s.get("item")]
+    known += list((build.get("cube") or {}).values())
+    by_norm = {_norm(k): k for k in known}
+    if _norm(name) in by_norm:
+        return by_norm[_norm(name)]
+    hit = difflib.get_close_matches(_norm(name), list(by_norm), n=1, cutoff=0.82)
+    return by_norm[hit[0]] if hit else name
 
 
 def find_slots(build: dict, name: str, item_type: str = "") -> list:
@@ -62,11 +76,17 @@ def score_affixes(weights: dict, affixes: dict) -> tuple[int, list, str | None]:
 
 def evaluate(build: dict, item: dict, equipped: dict | None = None, cube_done: set | None = None) -> Verdict:
     """item: {name, type, quality, affixes{key: value}}. equipped: slot -> stored item dict."""
-    equipped = equipped or {}
-    cube_done = {_norm(c) for c in (cube_done or set())}
-    name = item.get("name", "")
+    v = _evaluate(build, item, equipped or {}, cube_done or set())
+    v.name = canonical_name(build, item.get("name", ""))
+    return v
+
+
+def _evaluate(build, item, equipped, cube_done) -> Verdict:
+    cube_done = {_norm(c) for c in cube_done}
+    name = canonical_name(build, item.get("name", ""))
     affixes = item.get("affixes") or {}
     quality = (item.get("quality") or "normal").lower()
+    rarity = (item.get("rarity") or "").lower()
 
     # Is it a cube power for this build?
     for cube_slot, cube_item in (build.get("cube") or {}).items():
@@ -80,6 +100,10 @@ def evaluate(build: dict, item: dict, equipped: dict | None = None, cube_done: s
                   _norm(build["slots"][s]["item"]) == _norm(name)]
     flex = [s for s in slots if not build["slots"][s].get("item")]
 
+    if not build_pick and rarity in ("rare", "magic", "normal"):
+        return Verdict("SALVAGE", slot=slots[0] if slots else None,
+                       reasons=[f"{rarity.title()} items are only salvage at level 70."])
+
     if not build_pick and not flex:
         if slots:
             wanted = ", ".join(build["slots"][s]["item"] for s in slots)
@@ -90,11 +114,18 @@ def evaluate(build: dict, item: dict, equipped: dict | None = None, cube_done: s
     best = None
     for slot in candidates:
         spec = build["slots"][slot]
-        score, missing, reroll = score_affixes(spec.get("affixes", {}), affixes)
+        weights = spec.get("affixes", {})
+        score, missing, reroll = score_affixes(weights, affixes)
         current = equipped.get(slot)
-        v = Verdict("EQUIP", slot=slot, score=score, missing=[label(m) for m in missing], reroll=reroll)
+        have = sorted((k for k in affixes if k in weights), key=lambda k: -weights[k])
+        v = Verdict("EQUIP", slot=slot, score=score, missing=[label(m) for m in missing],
+                    have=[label(h) for h in have], reroll=reroll)
+        target = spec.get("item")
         if current is None:
             v.reasons.append("You don't have this slot filled yet.")
+        elif target and canonical_name(build, current.get("name", "")) != target:
+            v.action = "UPGRADE"
+            v.reasons.append(f"Replaces {current.get('name') or 'your current item'}, which isn't the build's pick.")
         else:
             cur_q = QUALITY_RANK.get((current.get("quality") or "normal").lower(), 0)
             new_q = QUALITY_RANK.get(quality, 0)

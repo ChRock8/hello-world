@@ -34,7 +34,7 @@ _LINE_RULES = [
     (r"\bvitality\b", "vit"),
     (r"\bdexterity\b", "dex"),
     (r"\bintelligence\b", "int"),
-    (r"\barmor\b", "armor"),
+    (r"^\+\s*[\d,]+ armor", "armor"),  # bonus armor only, not the item's base armor
     (r"^\+?\d+% damage$", "damage_pct"),
 ]
 
@@ -73,6 +73,20 @@ def parse_line(line: str):
     return None
 
 
+def parse_lines(lines) -> dict:
+    """Parse tooltip lines (one stat per line), e.g. from OCR."""
+    out: dict = {}
+    for line in lines:
+        hit = parse_line(line)
+        if hit:
+            key, val = hit
+            if key == "socket":
+                out[key] = out.get(key, 0) + 1
+            else:
+                out[key] = val
+    return out
+
+
 def parse_shorthand(text: str) -> dict:
     """'chc chd socket x2 str' -> {'chc': None, 'chd': None, 'socket': 2, 'str': None}"""
     out: dict = {}
@@ -97,18 +111,10 @@ def parse_shorthand(text: str) -> dict:
 
 def parse(text: str) -> dict:
     """Parse free text. Lines that look like tooltip text win; otherwise shorthand."""
-    out: dict = {}
     lines = [l for l in text.splitlines() if l.strip()]
     tooltip_like = [l for l in lines if len(l.split()) >= 3]
     if tooltip_like:
-        for line in lines:
-            hit = parse_line(line)
-            if hit:
-                key, val = hit
-                if key == "socket":
-                    out[key] = out.get(key, 0) + 1
-                else:
-                    out[key] = val
+        out = parse_lines(lines)
         if out:
             return out
     return parse_shorthand(text)

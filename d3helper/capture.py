@@ -1,6 +1,6 @@
-"""Global hotkey that saves a screenshot of the game.
+"""Screenshots and global hotkeys.
 
-Run Diablo 3 in 'Windowed Fullscreen' so screenshots aren't black.
+Run Diablo 3 in 'Windowed Fullscreen' so screenshots and the overlay work.
 """
 import threading
 from datetime import datetime
@@ -8,17 +8,25 @@ from datetime import datetime
 from . import config, db
 
 
-def take_snapshot() -> str:
+def grab_screen():
+    """Primary monitor as a PIL image."""
     import mss
-    import mss.tools
+    from PIL import Image
 
-    config.ensure_dirs()
-    path = config.SNAP_DIR / f"snap_{datetime.now():%Y%m%d_%H%M%S_%f}.png"
     with mss.mss() as sct:
-        monitor = sct.monitors[1]  # primary monitor
-        shot = sct.grab(monitor)
-        mss.tools.to_png(shot.rgb, shot.size, output=str(path))
+        shot = sct.grab(sct.monitors[1])
+        return Image.frombytes("RGB", shot.size, shot.rgb)
+
+
+def save_image(img, prefix="snap") -> str:
+    config.ensure_dirs()
+    path = config.SNAP_DIR / f"{prefix}_{datetime.now():%Y%m%d_%H%M%S_%f}.png"
+    img.save(path)
     return str(path)
+
+
+def take_snapshot() -> str:
+    return save_image(grab_screen())
 
 
 def snapshot_and_record(on_saved=None) -> int:
@@ -30,23 +38,31 @@ def snapshot_and_record(on_saved=None) -> int:
     return snap_id
 
 
-def start_hotkey(on_saved=None):
-    """Listen for the hotkey in the background. Returns the listener or None."""
+def start_hotkeys(mapping: dict):
+    """mapping: {"<f9>": callback}. Returns the listener, or None if unavailable."""
     try:
         from pynput import keyboard
     except Exception as e:  # no display / not installed
-        print(f"[hotkey] disabled: {e}")
+        print(f"[hotkeys] disabled: {e}")
         return None
 
-    def fire():
-        try:
-            snap_id = snapshot_and_record(on_saved)
-            print(f"[hotkey] saved snapshot #{snap_id}")
-        except Exception as e:
-            print(f"[hotkey] screenshot failed: {e}")
+    def safe(fn):
+        def run():
+            try:
+                fn()
+            except Exception as e:
+                print(f"[hotkeys] {e}")
+        return run
 
-    listener = keyboard.GlobalHotKeys({config.HOTKEY: fire})
+    listener = keyboard.GlobalHotKeys({k: safe(f) for k, f in mapping.items()})
     listener.daemon = True
     listener.start()
-    print(f"[hotkey] press {config.HOTKEY} in game to save a snapshot")
+    return listener
+
+
+def start_hotkey(on_saved=None):
+    """Snapshot-only mode (no overlay): the hotkey just saves a screenshot."""
+    listener = start_hotkeys({config.HOTKEY: lambda: print(f"[hotkey] saved snapshot #{snapshot_and_record(on_saved)}")})
+    if listener:
+        print(f"[hotkey] press {config.HOTKEY} in game to save a snapshot")
     return listener
