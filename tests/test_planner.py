@@ -35,14 +35,24 @@ def test_owned_cube_item_is_extract_step():
     assert not any("Ambo" in s.title for s in plan(cube={"Ambo's Pride"}).steps)
 
 
-def test_spare_set_piece_offers_convert():
+def test_spare_set_pieces_become_one_convert_step():
     worn = {"head": {"name": "Helm of the Wastes", "quality": "ancient", "affixes": {}}}
     spare = [{"name": "Helm of the Wastes", "equipped": 0, "location": "Stash"}]
-    p = plan(equipped=worn, items=spare, res={"deaths_breath": 20, "forgotten_soul": 25})
+    p = plan(equipped=worn, items=spare, res={"deaths_breath": 20, "forgotten_soul": 25, "blood_shards": 100})
+    first = p.steps[0]
+    assert first.title == "Convert spare Wrath of the Wastes pieces"
+    assert "random other" in first.why and "5 missing, a hit takes about 1 try" in first.why
+    assert first.options[0].tries == 2
+    # Conversion is random, so per-piece steps only offer targeted routes.
     shoulders = next(s for s in p.steps if s.title == "Get Pauldrons of the Wastes")
-    assert shoulders.options[0].text.startswith("Kanai's Cube: convert your spare Helm") and shoulders.options[0].tries == 2
-    chest = next(s for s in p.steps if s.title == "Get Cuirass of the Wastes")
-    assert "convert" not in chest.options[0].text  # the one spare is already spoken for
+    assert not any("convert" in o.text.lower() for o in shoulders.options)
+
+
+def test_convert_odds_drop_as_set_fills():
+    worn = {slot: {"name": BUILD["slots"][slot]["item"], "quality": "ancient", "affixes": {}}
+            for slot in ("head", "shoulders", "chest", "hands", "legs")}
+    p = plan(equipped=worn, items=[{"name": "Helm of the Wastes", "equipped": 0}])
+    assert "1 missing, a hit takes about 5 tries" in p.steps[0].why
 
 
 def test_non_ancient_and_below_goal_steps():

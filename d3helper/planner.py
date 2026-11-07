@@ -93,6 +93,7 @@ def make_plan(build, equipped: dict, items: list, cube_done, resources: dict, go
                   if canonical_name(build, i["name"]) in piece_set and canonical_name(build, i["name"]) in worn]
 
     steps, done = [], 0
+    missing_by_set: dict = {}
     for slot, spec in build["slots"].items():
         target, where = spec.get("item"), SLOT_LABELS[slot]
         kind = SLOT_KIND.get(slot, slot)
@@ -116,10 +117,7 @@ def make_plan(build, equipped: dict, items: list, cube_done, resources: dict, go
                 continue
             extra = []
             if big_set:
-                spare = next((i for i in spare_pool if i["_set"] == spec["set"]), None)
-                if spare:
-                    spare_pool.remove(spare)  # each spare can only be converted once
-                    extra.append(_recipe("convert_set", f"Kanai's Cube: convert your spare {spare['name']}", res))
+                missing_by_set.setdefault(spec["set"], []).append(target)
             why = f"Piece of your {spec['set']} set." if spec.get("set") else "Core item for your build."
             steps.append(Step(2 if big_set else (3 if spec.get("set") else 5), f"Get {target}", why,
                               _find_options(kind, res, extra)))
@@ -141,6 +139,20 @@ def make_plan(build, equipped: dict, items: list, cube_done, resources: dict, go
             steps.append(Step(8, f"Improve your {target}", why[:1].upper() + why[1:] + ".", opts))
         else:
             done += 1
+
+    # Convert Set Item turns a piece into a RANDOM other piece of the same set - you can't pick which.
+    # So it's one set-wide step: cycle spares until they land on pieces you're missing.
+    for set_name, missing in missing_by_set.items():
+        spares = [i for i in spare_pool if i["_set"] == set_name]
+        if not spares:
+            continue
+        tries = (set_sizes[set_name] - 1) / len(missing)
+        names = ", ".join(dict.fromkeys(i["name"] for i in spares))
+        steps.insert(0, Step(2, f"Convert spare {set_name} pieces",
+                             f"You have {len(spares)} spare ({names}). Each cube try turns one into a random other "
+                             f"{set_name} piece; with {len(missing)} missing, a hit takes about {tries:.0f} "
+                             f"tr{'y' if round(tries) == 1 else 'ies'} on average. Keep converting duplicates.",
+                             [_recipe("convert_set", "Kanai's Cube: convert a spare", res)]))
 
     for cube_slot, name in (build.get("cube") or {}).items():
         if name in cube_done:
