@@ -57,3 +57,14 @@ def make_click_through(tk_window):
     style = user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
     style |= WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE
     user32.SetWindowLongW(hwnd, GWL_EXSTYLE, style)
+
+
+def chime():
+    """A short, non-blocking system sound (for upgrades)."""
+    if not IS_WINDOWS:
+        return
+    try:
+        import winsound
+        winsound.PlaySound("SystemAsterisk", winsound.SND_ALIAS | winsound.SND_ASYNC)
+    except Exception:
+        pass

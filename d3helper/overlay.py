@@ -70,7 +70,7 @@ class Overlay:
                 if msg[0] == "show":
                     self.show_reading(msg[1], msg[2] if len(msg) > 2 else "full")
                 elif msg[0] == "plan":
-                    self.show_plan(msg[1])
+                    self.show_plan(msg[1], msg[2] if len(msg) > 2 else None)
                 elif msg[0] == "hide":
                     self.card.withdraw()
                 elif msg[0] == "toast":
@@ -135,7 +135,7 @@ class Overlay:
         self.card.geometry(f"+{x}+{y}")
         self._show(self.card)
 
-    def show_plan(self, plan, ms=15000):
+    def show_plan(self, plan, session=None, ms=15000):
         """Top-centre card: the next three steps and what to farm."""
         if self.plan_win.winfo_viewable():
             self.plan_win.withdraw()  # F7 again closes it
@@ -158,6 +158,12 @@ class Overlay:
         for tip in plan.farm[:2]:
             tk.Label(f, text="Farm: " + tip.removeprefix("Farm "), fg="#7fd18f", bg=BG, font=(FONT, 10),
                      wraplength=520, justify="left").pack(anchor="w", pady=(6, 0))
+        if session and session["checked"]:
+            ups = f" · {len(session['upgrades'])} upgrade{'s' if len(session['upgrades']) != 1 else ''}" if session["upgrades"] else ""
+            line = f"This session: {session['minutes']} min · {session['checked']} items checked{ups}"
+            rates = [f"{lbl} +{d:,}" + (f" ({ph:,}/h)" if ph else "") for lbl, d, ph in session["rates"][:2]]
+            tk.Label(f, text=line + ("\n" + " · ".join(rates) if rates else ""), fg=MUTED, bg=BG, font=(FONT, 9),
+                     justify="left").pack(anchor="w", pady=(8, 0))
         tk.Label(f, text="F7 to close · full list on the dashboard", fg=MUTED, bg=BG, font=(FONT, 8)).pack(anchor="w", pady=(8, 0))
         self.plan_win.update_idletasks()
         sw = self.root.winfo_screenwidth()

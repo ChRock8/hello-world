@@ -1,0 +1,27 @@
+{% extends 'base.html' %}{% block body %}
+<h1>Debug</h1>
+<p>When the overlay gets something wrong, press <kbd>F12</kbd> in game. It saves exactly what the app saw.
+Open it here to see what was read, re-check it after a fix, or turn it into a permanent test case.</p>
+
+{% if history %}
+<h2>Recent hover reads</h2>
+<table><tr><th>Time</th><th>Took</th><th>Text lines</th><th>Tooltips</th><th>Read as</th></tr>
+{% for h in history %}<tr><td>{{ h.time }}</td><td>{{ h.ms }} ms</td><td>{{ h.lines }}</td><td>{{ h.tooltips }}</td>
+<td>{% if h.name %}{{ h.name }} → <span class="pill v-{{ h.action|lower }}">{{ h.action }}</span>{% else %}<span class="muted">no item</span>{% endif %}</td></tr>{% endfor %}
+</table>
+{% endif %}
+
+<h2>Saved screens</h2>
+<p class="muted">feedback = you pressed F12 · captures = F6 reads · debug = every read while D3H_DEBUG=1</p>
+<table><tr><th>Saved</th><th>From</th><th>Text lines</th><th>App read</th></tr>
+{% for r in rows %}
+<tr><td><a href="{{ url_for('debug_detail', kind=r.kind, name=r.name) }}">{{ r.taken or r.name }}</a></td><td>{{ r.kind }}</td><td>{{ r.lines }}</td>
+<td>{% if r.read %}{{ r.read.name }} <span class="muted">{{ r.read.quality }}</span>{% else %}<span class="muted">-</span>{% endif %}</td></tr>
+{% else %}<tr><td colspan="4" class="muted">Nothing saved yet. Press F12 in game when something looks wrong.</td></tr>{% endfor %}
+</table>
+
+<h2>Test cases <span class="muted">({{ cases|length }} in tests/screens)</span></h2>
+<p class="muted">Run <code>python -m d3helper.fixtures check</code> to see which screens are read correctly.</p>
+<ul>{% for c in cases %}<li>{{ c.name }}</li>{% endfor %}</ul>
+<p><a href="{{ url_for('calibrate') }}">Calibrate where gold / shards are →</a></p>
+{% endblock %}

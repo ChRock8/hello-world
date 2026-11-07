@@ -4,7 +4,7 @@
   <input name="q" value="{{ q }}" placeholder="Search name or notes">
   <select name="location"><option value="">All locations</option>
   {% for l in locations %}<option {{ 'selected' if l==location }}>{{ l }}</option>{% endfor %}</select>
-  <button>Filter</button> <a href="{{ url_for('check') }}">+ Add item</a>
+  <button>Filter</button> <a href="{{ url_for('check') }}">+ Add item</a> · <a href="{{ url_for('cleanup') }}">Clean up junk</a>
 </form>
 <table>
 <tr><th>Item</th><th>Quality</th><th>Location</th><th>Slot</th><th>Score</th><th>Verdict</th></tr>

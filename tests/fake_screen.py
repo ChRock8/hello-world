@@ -1,7 +1,7 @@
 """A fake 1080p inventory screen: equipped tooltip (left), hovered tooltip (right)."""
 from d3helper.ocr import OcrLine
 
-POWER = OcrLine("Gain 1% Critical Hit Chance for each enemy", 1030, 560, 330, 16)
+POWER = OcrLine("Gain 1% Critical Hit Chance for each enemy", 1030, 560, 330, 16, "orange")
 
 HOVERED = [
     OcrLine("Gauntiet of the Wastes", 1100, 300, 200, 20),          # OCR typo on purpose

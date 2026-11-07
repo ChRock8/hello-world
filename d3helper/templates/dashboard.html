@@ -1,6 +1,12 @@
 {% extends 'base.html' %}{% block body %}
 <h1>{{ build.name }} <span class="muted">{{ done }}/{{ rows|length }} slots done</span></h1>
 
+{% if session %}
+<p class="session">This session: {{ session.minutes }} min · {{ session.checked }} items checked
+  {%- for action, n in session.counts.items() %} · {{ n }} {{ action|lower }}{% endfor %}
+  {%- if session.upgrades %} · upgrades: {{ session.upgrades|join(', ') }}{% endif %}
+  {%- for lbl, d, ph in session.rates %} · {{ lbl }} {{ '%+d'|format(d) }}{% if ph %} ({{ '{:,}'.format(ph) }}/h){% endif %}{% endfor %}</p>
+{% endif %}
 <section class="plan">
   <h2>Next steps <span class="muted">· F7 shows these in game</span></h2>
   {% for w in plan.warnings %}<div class="flash">{{ w }}</div>{% endfor %}
@@ -47,5 +53,11 @@
 <h2>Gems &amp; skills</h2>
 <p>Legendary gems: {{ build.gems.legendary|join(', ') }}{% if build.gems.verify %} <span class="tag">verify</span>{% endif %}</p>
 <p>Skills: {{ build.skills.list|join(', ') }}{% if build.skills.verify %} <span class="tag">verify</span>{% endif %}</p>
+{% if build.paragon %}
+<h2>Paragon priority{% if build.paragon.verify %} <span class="tag">verify</span>{% endif %}</h2>
+<div class="cards">{% for tab, order in build.paragon.items() if tab != 'verify' %}
+  <div class="card"><div class="muted">{{ tab }}</div><ol>{% for p in order %}<li>{{ p }}</li>{% endfor %}</ol></div>
+{% endfor %}</div>
+{% endif %}
 <ul>{% for n in build.notes %}<li>{{ n }}</li>{% endfor %}</ul>
 {% endblock %}

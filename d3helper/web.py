@@ -5,7 +5,9 @@ from flask import Flask, abort, flash, redirect, render_template, request, send_
 
 import re
 
-from . import affixes, blizzard, builds, config, db, planner, vision
+import json
+
+from . import affixes, blizzard, builds, captures, config, db, fixtures, planner, profile, screen_resources, state, vision
 from .evaluator import check_goals, evaluate, merged_goals, qrank
 
 app = Flask(__name__)
@@ -85,8 +87,9 @@ def dashboard():
             status = "missing"
         rows.append({"slot": slot, "spec": spec, "equipped": eq, "owned": owned, "status": status})
     done = sum(r["status"] == "done" for r in rows)
+    session = state.engine.session.summary() if state.engine else None
     return render_template("dashboard.html", rows=rows, done=done, cube=cube, plan=plan,
-                           short_text=planner.short_text, has_resources=bool(resources))
+                           short_text=planner.short_text, has_resources=bool(resources), session=session)
 
 
 @app.post("/cube/toggle")
@@ -233,8 +236,10 @@ def parse_amount(text: str) -> int:
 def stuff():
     with db.connect() as con:
         if request.method == "POST":
-            db.set_resources(con, {r["key"]: parse_amount(request.form.get(r["key"], ""))
-                                   for r in planner.RESOURCES})
+            values = {r["key"]: parse_amount(request.form.get(r["key"], "")) for r in planner.RESOURCES}
+            db.set_resources(con, values)
+            if state.engine:
+                state.engine.session.update_resources(values)
             flash("Saved. Next steps updated.")
             return redirect(url_for("dashboard"))
         values = db.get_resources(con)
@@ -268,3 +273,107 @@ def goals_page():
         if fields:
             rows.append((slot, spec, fields))
     return render_template("goals.html", rows=rows)
+
+
+# ---- stash cleanup -----------------------------------------------------
+
+@app.route("/cleanup", methods=["GET", "POST"])
+def cleanup():
+    build = active_build()
+    with db.connect() as con:
+        if request.method == "POST":
+            ids = [int(i) for i in request.form.getlist("id")]
+            for item_id in ids:
+                db.delete_item(con, item_id)
+            flash(f"Removed {len(ids)} items from your list.")
+            return redirect(url_for("cleanup"))
+        equipped, cube, goals = db.equipped_by_slot(con), db.cube_powers(con), goals_for(con)
+        junk = []
+        for it in db.list_items(con):
+            if it["equipped"]:
+                continue
+            v = evaluate(build, it, equipped, cube, goals)
+            if v.action == "SALVAGE":
+                junk.append((it, v))
+    return render_template("cleanup.html", junk=junk)
+
+
+# ---- debug: what did the app see? ----------------------------------------
+
+def _folders():
+    return {"feedback": captures.list_folders(config.data_subdir("feedback")),
+            "captures": captures.list_folders(config.data_subdir("captures")),
+            "debug": captures.list_folders(config.data_subdir("debug"))}
+
+
+def _folder(kind: str, name: str):
+    if kind not in ("feedback", "captures", "debug") or "/" in name or "\\" in name or ".." in name:
+        abort(404)
+    folder = config.data_subdir(kind) / name
+    if not (folder / "capture.json").exists():
+        abort(404)
+    return folder
+
+
+@app.route("/debug")
+def debug_page():
+    rows = []
+    for kind, folders in _folders().items():
+        for folder in folders[:15]:
+            data = json.loads((folder / "capture.json").read_text(encoding="utf-8"))
+            app_read = (data.get("app_read") or {}).get("hovered")
+            rows.append({"kind": kind, "name": folder.name, "taken": data.get("taken", ""),
+                         "lines": len(data.get("lines", [])), "read": app_read,
+                         "image": (folder / "screen.png").exists()})
+    history = list(state.engine.history) if state.engine else []
+    return render_template("debug.html", rows=rows, history=history, cases=fixtures.cases())
+
+
+@app.route("/debug/<kind>/<name>", methods=["GET", "POST"])
+def debug_detail(kind, name):
+    folder = _folder(kind, name)
+    cap, data = captures.load(folder)
+    if request.method == "POST":
+        try:
+            case = fixtures.make_case(cap, request.form.get("case") or name)
+            if (folder / "screen.png").exists() and not (case / "screen.png").exists():
+                import shutil
+                shutil.copy(folder / "screen.png", case / "screen.png")
+            flash(f"Test case created: {case}. Fix expected.json if anything is wrong.")
+        except FileExistsError as e:
+            flash(str(e))
+        return redirect(url_for("debug_detail", kind=kind, name=name))
+    now = captures.read(cap)  # re-read with the current rules
+    return render_template("debug_detail.html", kind=kind, name=name, cap=cap, data=data, now=now,
+                           before=data.get("app_read"), lines=sorted(cap.lines, key=lambda l: (l.y, l.x)))
+
+
+@app.route("/debug/<kind>/<name>.png")
+def debug_image(kind, name):
+    folder = _folder(kind, name)
+    if not (folder / "screen.png").exists():
+        abort(404)
+    return send_file(folder / "screen.png", mimetype="image/png")
+
+
+# ---- calibrate: show the app where your numbers are ------------------------
+
+@app.route("/calibrate", methods=["GET", "POST"])
+def calibrate():
+    if request.method == "POST":
+        key = request.form["key"]
+        region = [round(float(request.form[k]), 4) for k in ("x0", "y0", "x1", "y1")]
+        profile.save_override(["resources", key, "region"], region)
+        flash(f"Saved where {planner.RES_LABEL.get(key, key)} is. Press F6 in game to test.")
+        return redirect(url_for("calibrate", src=request.form.get("src", "")))
+    sources = [(f"{kind}/{f.name}", f"{kind}: {f.name}") for kind, folders in _folders().items()
+               for f in folders if (f / "screen.png").exists()]
+    src = request.args.get("src") or (sources[0][0] if sources else "")
+    found, prof = {}, profile.load()
+    if src:
+        cap, _ = captures.load(_folder(*src.split("/", 1)))
+        if cap.lines:
+            found = screen_resources.read_resources(cap.lines, cap.screen)
+    regions = {k: v.get("region") for k, v in prof["resources"].items() if isinstance(v, dict)}
+    return render_template("calibrate.html", sources=sources, src=src, found=found,
+                           resources=planner.RESOURCES, regions=regions, res_label=planner.RES_LABEL)

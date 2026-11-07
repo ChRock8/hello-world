@@ -1,0 +1,30 @@
+{
+ "hovered": {
+  "name": "Gauntlet of the Wastes",
+  "type": "Ancient Set Gloves",
+  "quality": "ancient",
+  "rarity": "set",
+  "affixes": {
+   "chc": 9.5,
+   "chd": 48.0,
+   "str": 716.0,
+   "ias": 7.0
+  },
+  "legendary_power": "Gain 1% Critical Hit Chance for each enemy"
+ },
+ "equipped": [
+  {
+   "name": "Gauntlet of the Wastes",
+   "type": "Set Gloves",
+   "quality": "normal",
+   "rarity": "set",
+   "affixes": {
+    "str": 500.0,
+    "chc": 8.0
+   },
+   "legendary_power": ""
+  }
+ ],
+ "resources": {},
+ "_note": "Synthetic screen made by tests/fake_screen.py, not a real screenshot. Replace with real ones."
+}

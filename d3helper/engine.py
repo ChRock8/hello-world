@@ -1,17 +1,18 @@
 """The hover loop: mouse rests -> screenshot -> OCR -> find tooltip -> verdict -> overlay.
 
 Runs in a background thread and talks to the overlay through a queue of
-("show", Reading) / ("hide",) / ("toast", text) messages.
+("show", Reading, mode) / ("hide",) / ("toast", text) / ("plan", Plan, session) messages.
 """
-import json
+import collections
 import threading
 import time
 from dataclasses import dataclass, field
 
-from . import builds, capture, config, db, ocr, planner, tooltip, vision, winutil
-from .evaluator import Verdict, evaluate, merged_goals
+from . import (builds, capture, captures, config, db, ocr, planner, profile, screen_resources,
+               tooltip, vision, winutil)
+from .evaluator import Verdict, canonical_name, evaluate, merged_goals
 
-JITTER_PX = 4    # ignore tiny mouse wobble
+JITTER_PX = 4      # ignore tiny mouse wobble
 MOVE_HIDE_PX = 12  # moved this far from where we read -> hide the card
 
 
@@ -25,6 +26,44 @@ class Reading:
     compare: list = field(default_factory=list)  # equipped items seen on screen
 
 
+class Session:
+    """What happened since the app started: items checked, upgrades, farming rates."""
+
+    def __init__(self, resources: dict | None = None):
+        self.started = time.time()
+        self.seen: dict = {}
+        self.upgrades: list = []
+        self.res_start = dict(resources or {})
+        self.res_now = dict(resources or {})
+
+    def record(self, r: Reading) -> bool:
+        key = (r.verdict.name or r.item.get("name"), r.item.get("quality"),
+               tuple(sorted((r.item.get("affixes") or {}).items(), key=str)))
+        if key in self.seen:
+            return False
+        self.seen[key] = r.verdict.action
+        if r.verdict.action in ("UPGRADE", "EQUIP"):
+            self.upgrades.append(r.verdict.name or r.item.get("name"))
+        return True
+
+    def update_resources(self, values: dict):
+        for k, v in values.items():
+            self.res_start.setdefault(k, v)
+            self.res_now[k] = v
+
+    def summary(self) -> dict:
+        minutes = (time.time() - self.started) / 60
+        counts = collections.Counter(self.seen.values())
+        rates = []
+        for k, now in self.res_now.items():
+            delta = now - self.res_start.get(k, now)
+            if delta and k != "highest_gr":
+                per_hour = round(delta / (minutes / 60)) if minutes >= 5 else None
+                rates.append((planner.RES_LABEL.get(k, k), delta, per_hour))
+        return {"minutes": round(minutes), "checked": len(self.seen), "counts": dict(counts),
+                "upgrades": list(self.upgrades), "rates": rates}
+
+
 class Engine:
     def __init__(self, ui_queue, grab=capture.grab_screen, read_text=ocr.recognize,
                  cursor=winutil.cursor_pos, focused_title=winutil.foreground_title):
@@ -34,21 +73,70 @@ class Engine:
         self.mode = config.CARD_MODE if config.CARD_MODE in ("simple", "full") else "simple"
         self.enabled = True
         self.current: Reading | None = None
+        self.last: captures.Capture | None = None
+        self.history = collections.deque(maxlen=40)  # recent reads, for the Debug page
+        with db.connect() as con:
+            self.session = Session(db.get_resources(con))
         self._stop = threading.Event()
         self._ocr_warned = False
 
+    # ---- reading the screen ----------------------------------------------
+    def capture_screen(self, cursor) -> captures.Capture:
+        t0 = time.perf_counter()
+        img = self.grab()
+        scale = config.OCR_SCALE or profile.load()["ocr"]["scale"]
+        lines = self.read_text(img, scale)
+        tooltip.annotate_colors(lines, img)
+        cap = captures.Capture((img.width, img.height), cursor, lines, img,
+                               int((time.perf_counter() - t0) * 1000))
+        self.last = cap
+        return cap
+
+    def analyze(self, img_or_cap, cursor=None) -> Reading | None:
+        if isinstance(img_or_cap, captures.Capture):
+            cap = img_or_cap
+        else:  # a PIL image (tests / tools)
+            img = img_or_cap
+            lines = self.read_text(img, config.OCR_SCALE or profile.load()["ocr"]["scale"])
+            tooltip.annotate_colors(lines, img)
+            cap = captures.Capture((img.width, img.height), cursor, lines, img)
+            self.last = cap
+        tips = tooltip.find_tooltips(cap.lines, cap.screen[1])
+        hovered, compares = tooltip.pick(tips, cap.cursor)
+        reading = None
+        if hovered:
+            reading = self.judge(hovered.to_item(), [c.to_item() for c in compares],
+                                 hovered.box, cap.screen, learn=True)
+        self.history.appendleft({
+            "time": time.strftime("%H:%M:%S"), "ms": cap.ms, "lines": len(cap.lines),
+            "tooltips": len(tips), "name": reading.verdict.name if reading else None,
+            "action": reading.verdict.action if reading else None})
+        if config.DEBUG:
+            captures.save(cap, config.data_subdir("debug") / time.strftime("%Y%m%d_%H%M%S"))
+            for old in captures.list_folders(config.data_subdir("debug"))[20:]:
+                _rmtree(old)
+        return reading
+
     # ---- judging -------------------------------------------------------
-    def judge(self, item: dict, compare: list, box, screen, source="ocr") -> Reading:
+    def judge(self, item: dict, compare: list, box, screen, source="ocr", learn=False) -> Reading:
         build = builds.load_build(config.ACTIVE_BUILD)
         with db.connect() as con:
-            equipped = db.equipped_by_slot(con)
             cube = db.cube_powers(con)
             goals = merged_goals(build, db.goal_overrides(con))
-        # What the game shows as equipped right now beats what we stored.
-        for ci in compare:
-            cv = evaluate(build, ci, {}, cube, goals)
-            if cv.slot:
-                equipped[cv.slot] = {**ci, "score": cv.score}
+            # What the game shows as equipped right now beats what we stored.
+            for ci in compare:
+                cv = evaluate(build, ci, {}, cube, goals)
+                if not cv.slot:
+                    continue
+                target = build["slots"][cv.slot].get("item")
+                if learn and config.LEARN_EQUIPPED and target and canonical_name(build, ci["name"]) == target:
+                    if db.learn_equipped(con, cv.slot, {**ci, "name": target}) == "new":
+                        self.q.put(("toast", f"Learned your {builds.SLOT_LABELS[cv.slot].lower()}: {target}"))
+            equipped = db.equipped_by_slot(con)
+            for ci in compare:
+                cv = evaluate(build, ci, {}, cube, goals)
+                if cv.slot:
+                    equipped[cv.slot] = {**ci, "score": cv.score}
         return Reading(item, evaluate(build, item, equipped, cube, goals), box, screen, source, compare)
 
     def plan(self) -> planner.Plan:
@@ -56,17 +144,6 @@ class Engine:
         with db.connect() as con:
             return planner.make_plan(build, db.equipped_by_slot(con), db.list_items(con), db.cube_powers(con),
                                      db.get_resources(con), merged_goals(build, db.goal_overrides(con)))
-
-    def analyze(self, img, cursor) -> Reading | None:
-        lines = self.read_text(img, config.OCR_SCALE)
-        tips = tooltip.find_tooltips(lines, img.height, tooltip.color_sampler(img))
-        hovered, compares = tooltip.pick(tips, cursor)
-        if config.DEBUG:
-            self._dump(img, lines, hovered)
-        if not hovered:
-            return None
-        return self.judge(hovered.to_item(), [c.to_item() for c in compares],
-                          hovered.box, (img.width, img.height))
 
     # ---- loop ----------------------------------------------------------
     def stop(self):
@@ -103,7 +180,7 @@ class Engine:
 
     def _read(self, pos):
         try:
-            reading = self.analyze(self.grab(), pos)
+            reading = self.analyze(self.capture_screen(pos))
         except ocr.OcrUnavailable as e:
             if not self._ocr_warned:
                 self._ocr_warned = True
@@ -115,6 +192,8 @@ class Engine:
             return
         if reading:
             self.current = reading
+            if self.session.record(reading) and config.SOUND and reading.verdict.action in ("UPGRADE", "EQUIP"):
+                winutil.chime()
             self.q.put(("show", reading, self.mode))
         elif self.current:
             self._hide()
@@ -133,7 +212,48 @@ class Engine:
         self.q.put(("toast", msg))
 
     def show_plan(self):
-        self.q.put(("plan", self.plan()))
+        self.q.put(("plan", self.plan(), self.session.summary()))
+
+    def read_resources(self):
+        """F6: read gold, shards and materials off the screen and save them."""
+        try:
+            cap = self.capture_screen(self.cursor())
+        except ocr.OcrUnavailable as e:
+            self.q.put(("toast", str(e)))
+            return {}
+        folder = config.data_subdir("captures") / time.strftime("resources_%Y%m%d_%H%M%S")
+        captures.save(cap, folder)
+        for old in captures.list_folders(config.data_subdir("captures"))[10:]:
+            _rmtree(old)
+        found = screen_resources.read_resources(cap.lines, cap.screen)
+        if not found:
+            self.q.put(("toast", "Couldn't find gold, shards or materials. Open your inventory, "
+                                 "or mark where they are on the dashboard's Calibrate page."))
+            return {}
+        with db.connect() as con:
+            db.set_resources(con, found)
+        self.session.update_resources(found)
+        shown = ", ".join(f"{planner.RES_LABEL.get(k, k)} {v:,}" for k, v in list(found.items())[:4])
+        more = f" +{len(found) - 4} more" if len(found) > 4 else ""
+        self.q.put(("toast", f"Updated: {shown}{more}"))
+        return found
+
+    def report_wrong(self):
+        """F12: save exactly what the app saw, so it can be fixed (and become a test)."""
+        cap = self.last
+        if cap is None or cap.img is None:
+            try:
+                cap = self.capture_screen(self.cursor())
+            except ocr.OcrUnavailable:
+                img = self.grab()
+                cap = captures.Capture((img.width, img.height), self.cursor(), [], img)
+        r = self.current
+        extra = {"app_read": captures.read(cap) if cap.lines else None,
+                 "verdict": ({"action": r.verdict.action, "headline": r.verdict.headline, "slot": r.verdict.slot}
+                             if r else None)}
+        folder = captures.save(cap, config.data_subdir("feedback") / time.strftime("%Y%m%d_%H%M%S"), extra)
+        self.q.put(("toast", f"Saved for fixing: data\\feedback\\{folder.name}. See the Debug page."))
+        return folder
 
     def _store(self, equip: bool):
         r = self.current
@@ -193,19 +313,11 @@ class Engine:
         self.current = self.judge(item, compare, box, screen, source="claude")
         self.q.put(("show", self.current, "full"))
 
-    # ---- debugging -----------------------------------------------------
-    def _dump(self, img, lines, hovered):
-        config.DEBUG_DIR.mkdir(parents=True, exist_ok=True)
-        stamp = time.strftime("%Y%m%d_%H%M%S")
-        img.save(config.DEBUG_DIR / f"{stamp}.png")
-        (config.DEBUG_DIR / f"{stamp}.json").write_text(json.dumps({
-            "lines": [l.to_dict() for l in lines],
-            "hovered": hovered.__dict__ if hovered else None}, indent=1, default=str))
-        old = sorted(config.DEBUG_DIR.glob("*.png"))[:-20]
-        for p in old:
-            p.unlink(missing_ok=True)
-            p.with_suffix(".json").unlink(missing_ok=True)
-
 
 def _dist(a, b):
     return max(abs(a[0] - b[0]), abs(a[1] - b[1]))
+
+
+def _rmtree(path):
+    import shutil
+    shutil.rmtree(path, ignore_errors=True)

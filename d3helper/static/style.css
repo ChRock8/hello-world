@@ -22,3 +22,9 @@ button{background:var(--gold);color:#1a140c;border:0;cursor:pointer;font-weight:
 .stuff fieldset{border:1px solid var(--line);border-radius:6px;margin:0 0 12px;display:flex;flex-wrap:wrap;gap:10px}
 .stuff label{display:flex;flex-direction:column;font-size:13px;gap:2px}.stuff input{width:150px}
 .goals{display:flex;flex-wrap:wrap;gap:14px}.goals label{display:flex;gap:6px;align-items:center}
+.session{background:var(--panel);padding:8px 12px;border-radius:6px;font-size:14px}
+.snap-full{width:100%;border-radius:4px;border:1px solid var(--line)}
+.lines td{font-size:13px;padding:2px 6px}.c-orange{color:#e8963c}.c-blue{color:#8c8cff}.c-green{color:#6fcf7f}.c-other{color:var(--muted)}
+#calwrap{position:relative;display:inline-block;max-width:100%;cursor:crosshair}#calwrap img{max-width:100%;display:block}
+#calbox{position:absolute;border:2px solid #4cc46a;background:rgba(76,196,106,.15);display:none;pointer-events:none}
+.card ol{padding-left:18px;margin:4px 0}

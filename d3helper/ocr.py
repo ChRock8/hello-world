@@ -13,6 +13,7 @@ class OcrLine:
     y: int
     w: int
     h: int
+    color: str = ""  # orange / blue / green / other, filled in by tooltip.annotate_colors
 
     @property
     def cx(self):

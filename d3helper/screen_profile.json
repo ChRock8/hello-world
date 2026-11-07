@@ -1,0 +1,47 @@
+{
+  "_help": "Everything the screen reader assumes about Diablo 3's layout. If the overlay misreads things, the fix is usually a number or word here. Changes you make on the Calibrate page are saved to data/screen_profile.json and override this file.",
+  "ocr": {"scale": 1.0, "language": "en"},
+  "tooltip": {
+    "_help": "Sizes are shares of screen height (width) or multiples of a text line's height (lines).",
+    "width": 0.36,
+    "icon_offset": 0.25,
+    "name_max_lines_above": 6,
+    "name_max_offset": 0.4,
+    "max_gap_lines": 5,
+    "equipped_words": ["equipped"],
+    "section_words": ["primary", "secondary"],
+    "quality_prefixes": {"primal ancient": "primal", "ancient": "ancient"},
+    "rarity_words": ["legendary", "set", "rare", "magic", "crafted"],
+    "types": ["helm", "spirit stone", "voodoo mask", "wizard hat", "shoulders", "chest armor", "cloak",
+              "gloves", "bracers", "belt", "mighty belt", "pants", "boots", "amulet", "ring",
+              "mighty weapon", "axe", "sword", "mace", "spear", "dagger", "fist weapon", "flail",
+              "scythe", "ceremonial knife", "wand", "hand crossbow", "bow", "crossbow", "polearm",
+              "staff", "daibo", "shield", "crusader shield", "mojo", "orb", "source", "quiver", "phylactery"],
+    "stop_patterns": ["^\\(\\d\\)", "required level", "account bound", "durability", "item level", "sell value",
+                      "^level \\d+$", "^unidentified", "crafted by", "^\\d+ of \\d+ set"],
+    "skip_patterns": ["^(primary|secondary)$", "per second", "^armor$", "^[\\d,.]+$", "^[\\d,.]+\\s*-\\s*[\\d,.]+"]
+  },
+  "colors": {
+    "_help": "Text colour detection (0-255 RGB averages of the text pixels). Orange = legendary power, skipped as a stat.",
+    "text_min_brightness": 300,
+    "orange_min_red": 150,
+    "orange_red_minus_blue": 70,
+    "blue_over_red": 30,
+    "green_over_red": 20
+  },
+  "resources": {
+    "_help": "How F6 finds your currency. 'region' = [left, top, right, bottom] as shares of the screen, set by clicking on the Calibrate page. 'labels' = words shown next to the number.",
+    "gold":                  {"labels": [], "region": null},
+    "blood_shards":          {"labels": ["blood shards"], "region": null},
+    "deaths_breath":         {"labels": ["death's breath", "deaths breath"], "region": null},
+    "forgotten_soul":        {"labels": ["forgotten soul"], "region": null},
+    "reusable_parts":        {"labels": ["reusable parts"], "region": null},
+    "arcane_dust":           {"labels": ["arcane dust"], "region": null},
+    "veiled_crystal":        {"labels": ["veiled crystal"], "region": null},
+    "khanduran_rune":        {"labels": ["khanduran rune"], "region": null},
+    "caldeum_nightshade":    {"labels": ["caldeum nightshade"], "region": null},
+    "arreat_war_tapestry":   {"labels": ["arreat war tapestry"], "region": null},
+    "corrupted_angel_flesh": {"labels": ["corrupted angel flesh"], "region": null},
+    "westmarch_holy_water":  {"labels": ["westmarch holy water"], "region": null}
+  }
+}

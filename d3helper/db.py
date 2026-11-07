@@ -161,3 +161,18 @@ def set_goal(con, slot: str, affix: str, value):
 
 def clear_goals(con):
     con.execute("DELETE FROM goals")
+
+
+def learn_equipped(con, slot: str, item: dict) -> str:
+    """Remember an item the game showed as equipped. Returns 'new', 'updated' or ''."""
+    cur = equipped_by_slot(con).get(slot)
+    if cur and cur["name"] == item["name"] and cur["quality"] == item.get("quality", "normal"):
+        if cur["affixes"] == item.get("affixes", {}):
+            return ""
+        update_item(con, cur["id"], affixes=item.get("affixes", {}), raw_text=item.get("raw_text", ""))
+        return "updated"
+    item_id = add_item(con, name=item["name"], type=item.get("type", ""), quality=item.get("quality", "normal"),
+                       affixes=item.get("affixes", {}), raw_text=item.get("raw_text", ""),
+                       notes="Learned from the game's Equipped tooltip", location="Equipped", slot=slot)
+    set_equipped(con, item_id, slot)
+    return "new"

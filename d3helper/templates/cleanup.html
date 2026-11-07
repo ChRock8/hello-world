@@ -1,0 +1,17 @@
+{% extends 'base.html' %}{% block body %}
+<h1>Clean up</h1>
+<p>Items on your list that are salvage now, given what you wear and your goals. Salvage them in game, then remove them here.</p>
+{% if junk %}
+<form method="post">
+<table>
+<tr><th><input type="checkbox" checked onclick="document.querySelectorAll('input[name=id]').forEach(c=>c.checked=this.checked)"></th><th>Item</th><th>Where</th><th>Why</th></tr>
+{% for it, v in junk %}
+<tr><td><input type="checkbox" name="id" value="{{ it.id }}" checked></td>
+<td><a href="{{ url_for('item_detail', item_id=it.id) }}">{{ it.name }}</a> <span class="muted">{{ it.quality }}</span></td>
+<td>{{ it.location }}</td><td>{{ v.why }}</td></tr>
+{% endfor %}
+</table>
+<div class="row"><button>I salvaged these - remove from list</button></div>
+</form>
+{% else %}<p class="muted">Nothing to clean up.</p>{% endif %}
+{% endblock %}

@@ -1,6 +1,8 @@
 {% extends 'base.html' %}{% block body %}
 <h1>My stuff</h1>
-<p class="muted">Copy these from your inventory (gold and shards at the bottom, materials in the Materials tab). Shortcuts like 2.5m or 300k work.</p>
+<p>Fastest: open your inventory in game and press <kbd>F6</kbd>. The app reads what it can and fills these in.
+If it misses something, <a href="{{ url_for('calibrate') }}">show it where the numbers are</a>.</p>
+<p class="muted">Or type them here. Shortcuts like 2.5m or 300k work.</p>
 <form method="post" class="stuff">
 {% for group, items in groups.items() %}
   <fieldset><legend>{{ group }}</legend>

@@ -5,43 +5,208 @@
   "source_note": "Starter template. Items marked 'verify' could not be checked against a current guide - compare with Maxroll / Icy Veins for your season and edit this file.",
   "affix_weights_note": "Weights: 3 = must have, 2 = strong, 1 = nice to have. Anything not listed counts as 0 (a reroll target).",
   "slots": {
-    "head":      {"item": "Helm of the Wastes", "set": "Wrath of the Wastes",
-                  "affixes": {"chc": 3, "socket": 3, "str": 2, "vit": 1, "skill:whirlwind": 1}},
-    "shoulders": {"item": "Pauldrons of the Wastes", "set": "Wrath of the Wastes",
-                  "affixes": {"str": 3, "vit": 2, "cdr": 2, "life_pct": 1, "area_dmg": 1}},
-    "chest":     {"item": "Cuirass of the Wastes", "set": "Wrath of the Wastes",
-                  "affixes": {"str": 3, "socket": 3, "vit": 2, "skill:rend": 2, "skill:whirlwind": 1}},
-    "hands":     {"item": "Gauntlet of the Wastes", "set": "Wrath of the Wastes",
-                  "affixes": {"chc": 3, "chd": 3, "str": 2, "ias": 2, "area_dmg": 1}},
-    "legs":      {"item": "Tasset of the Wastes", "set": "Wrath of the Wastes",
-                  "affixes": {"str": 3, "socket": 3, "vit": 2, "skill:rend": 2, "all_res": 1}},
-    "feet":      {"item": "Sabaton of the Wastes", "set": "Wrath of the Wastes",
-                  "affixes": {"str": 3, "vit": 2, "skill:rend": 2, "all_res": 1, "armor": 1}},
-    "bracers":   {"item": null, "verify": true, "note": "Flex slot - check the current guide.",
-                  "affixes": {"physical_pct": 3, "chc": 3, "str": 2, "vit": 1}},
-    "waist":     {"item": "Lamentation", "verify": true,
-                  "affixes": {"str": 3, "vit": 2, "life_pct": 2, "all_res": 1}},
-    "neck":      {"item": "Squirt's Necklace", "verify": true,
-                  "affixes": {"physical_pct": 3, "chd": 3, "chc": 3, "socket": 2, "str": 1}},
-    "ring1":     {"item": "Focus", "set": "Bastion of Will", "verify": true,
-                  "affixes": {"chc": 3, "chd": 3, "socket": 3, "ias": 2, "str": 1, "cdr": 1}},
-    "ring2":     {"item": "Restraint", "set": "Bastion of Will", "verify": true,
-                  "affixes": {"chc": 3, "chd": 3, "socket": 3, "ias": 2, "str": 1, "cdr": 1}},
-    "main_hand": {"item": "Bul-Kathos's Solemn Vow", "set": "Bul-Kathos's Oath",
-                  "affixes": {"damage_pct": 3, "socket": 3, "str": 2, "cdr": 2, "area_dmg": 1}},
-    "off_hand":  {"item": "Bul-Kathos's Warrior Blood", "set": "Bul-Kathos's Oath",
-                  "affixes": {"damage_pct": 3, "socket": 3, "str": 2, "cdr": 2, "area_dmg": 1}}
+    "head": {
+      "item": "Helm of the Wastes",
+      "set": "Wrath of the Wastes",
+      "affixes": {
+        "chc": 3,
+        "socket": 3,
+        "str": 2,
+        "vit": 1,
+        "skill:whirlwind": 1
+      }
+    },
+    "shoulders": {
+      "item": "Pauldrons of the Wastes",
+      "set": "Wrath of the Wastes",
+      "affixes": {
+        "str": 3,
+        "vit": 2,
+        "cdr": 2,
+        "life_pct": 1,
+        "area_dmg": 1
+      }
+    },
+    "chest": {
+      "item": "Cuirass of the Wastes",
+      "set": "Wrath of the Wastes",
+      "affixes": {
+        "str": 3,
+        "socket": 3,
+        "vit": 2,
+        "skill:rend": 2,
+        "skill:whirlwind": 1
+      }
+    },
+    "hands": {
+      "item": "Gauntlet of the Wastes",
+      "set": "Wrath of the Wastes",
+      "affixes": {
+        "chc": 3,
+        "chd": 3,
+        "str": 2,
+        "ias": 2,
+        "area_dmg": 1
+      }
+    },
+    "legs": {
+      "item": "Tasset of the Wastes",
+      "set": "Wrath of the Wastes",
+      "affixes": {
+        "str": 3,
+        "socket": 3,
+        "vit": 2,
+        "skill:rend": 2,
+        "all_res": 1
+      }
+    },
+    "feet": {
+      "item": "Sabaton of the Wastes",
+      "set": "Wrath of the Wastes",
+      "affixes": {
+        "str": 3,
+        "vit": 2,
+        "skill:rend": 2,
+        "all_res": 1,
+        "armor": 1
+      }
+    },
+    "bracers": {
+      "item": null,
+      "verify": true,
+      "note": "Flex slot - check the current guide.",
+      "affixes": {
+        "physical_pct": 3,
+        "chc": 3,
+        "str": 2,
+        "vit": 1
+      }
+    },
+    "waist": {
+      "item": "Lamentation",
+      "verify": true,
+      "affixes": {
+        "str": 3,
+        "vit": 2,
+        "life_pct": 2,
+        "all_res": 1
+      }
+    },
+    "neck": {
+      "item": "Squirt's Necklace",
+      "verify": true,
+      "affixes": {
+        "physical_pct": 3,
+        "chd": 3,
+        "chc": 3,
+        "socket": 2,
+        "str": 1
+      }
+    },
+    "ring1": {
+      "item": "Focus",
+      "set": "Bastion of Will",
+      "verify": true,
+      "affixes": {
+        "chc": 3,
+        "chd": 3,
+        "socket": 3,
+        "ias": 2,
+        "str": 1,
+        "cdr": 1
+      }
+    },
+    "ring2": {
+      "item": "Restraint",
+      "set": "Bastion of Will",
+      "verify": true,
+      "affixes": {
+        "chc": 3,
+        "chd": 3,
+        "socket": 3,
+        "ias": 2,
+        "str": 1,
+        "cdr": 1
+      }
+    },
+    "main_hand": {
+      "item": "Bul-Kathos's Solemn Vow",
+      "set": "Bul-Kathos's Oath",
+      "affixes": {
+        "damage_pct": 3,
+        "socket": 3,
+        "str": 2,
+        "cdr": 2,
+        "area_dmg": 1
+      }
+    },
+    "off_hand": {
+      "item": "Bul-Kathos's Warrior Blood",
+      "set": "Bul-Kathos's Oath",
+      "affixes": {
+        "damage_pct": 3,
+        "socket": 3,
+        "str": 2,
+        "cdr": 2,
+        "area_dmg": 1
+      }
+    }
   },
   "cube": {
-    "weapon":  "Ambo's Pride",
-    "armor":   "Mantle of Channeling",
+    "weapon": "Ambo's Pride",
+    "armor": "Mantle of Channeling",
     "jewelry": "Obsidian Ring of the Zodiac"
   },
-  "gems": {"legendary": ["Bane of the Trapped", "Taeguk", "Esoteric Alteration"], "verify": true,
-           "weapon": "Emerald", "armor": "Topaz", "helm": "Diamond"},
-  "skills": {"verify": true, "list": ["Whirlwind", "Rend", "Ignore Pain", "War Cry", "Wrath of the Berserker", "Falter"]},
+  "gems": {
+    "legendary": [
+      "Bane of the Trapped",
+      "Taeguk",
+      "Esoteric Alteration"
+    ],
+    "verify": true,
+    "weapon": "Emerald",
+    "armor": "Topaz",
+    "helm": "Diamond"
+  },
+  "skills": {
+    "verify": true,
+    "list": [
+      "Whirlwind",
+      "Rend",
+      "Ignore Pain",
+      "War Cry",
+      "Wrath of the Berserker",
+      "Falter"
+    ]
+  },
   "notes": [
     "Ambo's Pride makes Whirlwind apply Rend; weave manual Rends while spinning.",
     "Ancient > normal for every slot; Primal beats both."
-  ]
+  ],
+  "paragon": {
+    "verify": true,
+    "Core": [
+      "Movement Speed (to 25%)",
+      "Strength",
+      "Vitality"
+    ],
+    "Offense": [
+      "Cooldown Reduction",
+      "Attack Speed",
+      "Crit Damage",
+      "Crit Chance"
+    ],
+    "Defense": [
+      "Life %",
+      "Armor",
+      "All Resist",
+      "Life Regen"
+    ],
+    "Utility": [
+      "Area Damage",
+      "Resource Cost Reduction",
+      "Life on Hit",
+      "Gold Find"
+    ]
+  }
 }

@@ -1,0 +1,190 @@
+{
+ "screen": [
+  1920,
+  1080
+ ],
+ "cursor": [
+  1600,
+  420
+ ],
+ "ms": 0,
+ "taken": "2026-11-07 13:58:01",
+ "lines": [
+  {
+   "text": "Equipped",
+   "x": 760,
+   "y": 270,
+   "w": 80,
+   "h": 14,
+   "color": ""
+  },
+  {
+   "text": "Gauntlet of the Wastes",
+   "x": 700,
+   "y": 300,
+   "w": 200,
+   "h": 20,
+   "color": ""
+  },
+  {
+   "text": "Set Gloves",
+   "x": 705,
+   "y": 345,
+   "w": 90,
+   "h": 16,
+   "color": ""
+  },
+  {
+   "text": "Primary",
+   "x": 630,
+   "y": 440,
+   "w": 60,
+   "h": 14,
+   "color": ""
+  },
+  {
+   "text": "+500 Strength",
+   "x": 630,
+   "y": 465,
+   "w": 120,
+   "h": 16,
+   "color": ""
+  },
+  {
+   "text": "Critical Hit Chance Increased by 8.0%",
+   "x": 630,
+   "y": 487,
+   "w": 330,
+   "h": 16,
+   "color": ""
+  },
+  {
+   "text": "Account Bound",
+   "x": 630,
+   "y": 560,
+   "w": 120,
+   "h": 16,
+   "color": ""
+  },
+  {
+   "text": "Gauntiet of the Wastes",
+   "x": 1100,
+   "y": 300,
+   "w": 200,
+   "h": 20,
+   "color": ""
+  },
+  {
+   "text": "Ancient Set Gloves",
+   "x": 1105,
+   "y": 345,
+   "w": 160,
+   "h": 16,
+   "color": ""
+  },
+  {
+   "text": "1,234",
+   "x": 1105,
+   "y": 370,
+   "w": 60,
+   "h": 18,
+   "color": ""
+  },
+  {
+   "text": "Armor",
+   "x": 1105,
+   "y": 392,
+   "w": 50,
+   "h": 14,
+   "color": ""
+  },
+  {
+   "text": "Primary",
+   "x": 1030,
+   "y": 440,
+   "w": 60,
+   "h": 14,
+   "color": ""
+  },
+  {
+   "text": "Critical Hit Chance Increased by 9.5%",
+   "x": 1030,
+   "y": 465,
+   "w": 330,
+   "h": 16,
+   "color": ""
+  },
+  {
+   "text": "Critical Hit Damage Increased by 48.0%",
+   "x": 1030,
+   "y": 487,
+   "w": 330,
+   "h": 16,
+   "color": ""
+  },
+  {
+   "text": "+716 Strength",
+   "x": 1030,
+   "y": 509,
+   "w": 120,
+   "h": 16,
+   "color": ""
+  },
+  {
+   "text": "Attack Speed Increased by 7.0%",
+   "x": 1030,
+   "y": 531,
+   "w": 260,
+   "h": 16,
+   "color": ""
+  },
+  {
+   "text": "Gain 1% Critical Hit Chance for each enemy",
+   "x": 1030,
+   "y": 560,
+   "w": 330,
+   "h": 16,
+   "color": "orange"
+  },
+  {
+   "text": "Wrath of the Wastes",
+   "x": 1110,
+   "y": 600,
+   "w": 180,
+   "h": 16,
+   "color": ""
+  },
+  {
+   "text": "(2) Set: Whirlwind gains Rend damage",
+   "x": 1030,
+   "y": 622,
+   "w": 330,
+   "h": 16,
+   "color": ""
+  },
+  {
+   "text": "Required Level: 70",
+   "x": 1030,
+   "y": 700,
+   "w": 150,
+   "h": 16,
+   "color": ""
+  },
+  {
+   "text": "Inventory",
+   "x": 1600,
+   "y": 100,
+   "w": 120,
+   "h": 20,
+   "color": ""
+  },
+  {
+   "text": "1,234,567",
+   "x": 1700,
+   "y": 900,
+   "w": 90,
+   "h": 16,
+   "color": ""
+  }
+ ]
+}

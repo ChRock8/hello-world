@@ -5,7 +5,7 @@ import signal
 import threading
 import webbrowser
 
-from . import capture, config, winutil
+from . import capture, config, state, winutil
 from .web import app, read_snapshot
 
 
@@ -25,13 +25,16 @@ def run_overlay():
 
     q = queue.Queue()
     engine = Engine(q)
+    state.engine = engine
     hints = {
         "full": (f"{_k(config.KEY_SAVE)} save · {_k(config.KEY_EQUIP)} I'm wearing it · "
-                 f"{_k(config.HOTKEY)} ask Claude · {_k(config.KEY_TOGGLE)} hide"),
+                 f"{_k(config.HOTKEY)} ask Claude · {_k(config.KEY_WRONG)} that's wrong · {_k(config.KEY_TOGGLE)} hide"),
         "simple": f"{_k(config.KEY_TOGGLE)} details · {_k(config.KEY_SAVE)} save · {_k(config.KEY_EQUIP)} wearing it",
     }
     overlay = Overlay(q, hints)
     capture.start_hotkeys({
+        config.KEY_RESOURCES: engine.read_resources,
+        config.KEY_WRONG: engine.report_wrong,
         config.KEY_PLAN: engine.show_plan,
         config.KEY_TOGGLE: engine.toggle,
         config.HOTKEY: engine.ask_claude,

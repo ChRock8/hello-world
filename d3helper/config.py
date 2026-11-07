@@ -5,7 +5,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = Path(os.environ.get("D3H_DATA_DIR", ROOT / "data"))
 SNAP_DIR = DATA_DIR / "snapshots"
-DEBUG_DIR = DATA_DIR / "debug"
 DB_PATH = DATA_DIR / "d3helper.sqlite"
 BUILDS_DIR = Path(__file__).resolve().parent / "builds"
 
@@ -31,17 +30,21 @@ OVERLAY = os.environ.get("D3H_OVERLAY", "1") == "1"
 HOVER_MS = int(os.environ.get("D3H_HOVER_MS", "350"))      # mouse rest time before reading
 REQUIRE_GAME = os.environ.get("D3H_REQUIRE_GAME", "1") == "1"  # only read while D3 is focused
 GAME_TITLE = os.environ.get("D3H_GAME_TITLE", "Diablo III")
-OCR_SCALE = float(os.environ.get("D3H_OCR_SCALE", "1.0"))  # try 1.5 if names are misread
+OCR_SCALE = float(os.environ["D3H_OCR_SCALE"]) if os.environ.get("D3H_OCR_SCALE") else None  # else profile
 CARD_POS = os.environ.get("D3H_CARD_POS", "auto")          # "auto" or fixed "x,y"
 CARD_MODE = os.environ.get("D3H_CARD_MODE", "simple")      # simple (one line) or full (all details)
 DEBUG = os.environ.get("D3H_DEBUG", "0") == "1"            # save what the overlay saw to data/debug
+SOUND = os.environ.get("D3H_SOUND", "1") == "1"            # chime when an upgrade shows up
+LEARN_EQUIPPED = os.environ.get("D3H_LEARN_EQUIPPED", "1") == "1"  # remember gear from Equipped tooltips
 
 # Hotkeys (pynput format).
 HOTKEY = os.environ.get("D3H_HOTKEY", "<f9>")              # snapshot / ask Claude
+KEY_RESOURCES = os.environ.get("D3H_KEY_RESOURCES", "<f6>")  # read gold/shards/materials
 KEY_PLAN = os.environ.get("D3H_KEY_PLAN", "<f7>")          # show next steps in game
 KEY_TOGGLE = os.environ.get("D3H_KEY_TOGGLE", "<f8>")      # simple -> full -> off
 KEY_SAVE = os.environ.get("D3H_KEY_SAVE", "<f10>")
 KEY_EQUIP = os.environ.get("D3H_KEY_EQUIP", "<f11>")
+KEY_WRONG = os.environ.get("D3H_KEY_WRONG", "<f12>")       # "that's wrong": save what the app saw
 
 # Optional: Claude reads item tooltips from screenshots.
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
@@ -60,3 +63,8 @@ def vision_enabled() -> bool:
 
 def ensure_dirs():
     SNAP_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def data_subdir(name: str) -> Path:
+    """data/<name>, following DATA_DIR even if it changes at runtime (tests)."""
+    return DATA_DIR / name
