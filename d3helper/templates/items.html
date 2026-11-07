@@ -1,0 +1,18 @@
+{% extends 'base.html' %}{% block body %}
+<h1>Stash</h1>
+<form class="row">
+  <input name="q" value="{{ q }}" placeholder="Search name or notes">
+  <select name="location"><option value="">All locations</option>
+  {% for l in locations %}<option {{ 'selected' if l==location }}>{{ l }}</option>{% endfor %}</select>
+  <button>Filter</button> <a href="{{ url_for('check') }}">+ Add item</a>
+</form>
+<table>
+<tr><th>Item</th><th>Quality</th><th>Location</th><th>Slot</th><th>Score</th><th>Verdict</th></tr>
+{% for i in items %}
+<tr><td><a href="{{ url_for('item_detail', item_id=i.id) }}">{{ i.name }}</a></td><td>{{ i.quality }}</td>
+<td>{{ i.location }}</td><td>{{ slot_labels.get(i.slot, '') }}</td><td>{{ i.score }}</td>
+<td><span class="pill v-{{ i.verdict|lower }}">{{ i.verdict }}</span></td></tr>
+{% else %}<tr><td colspan="6" class="muted">Nothing yet. Add items from "Keep or salvage?", snapshots, or Import.</td></tr>
+{% endfor %}
+</table>
+{% endblock %}

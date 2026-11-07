@@ -1,0 +1,16 @@
+{% extends 'base.html' %}{% block body %}
+<h1>Snapshots</h1>
+<p>Hover an item in game and press <kbd>{{ hotkey }}</kbd>. Play in <em>Windowed Fullscreen</em> so captures aren't black.</p>
+{% if not vision_on %}<p class="flash">Auto-reading is off (no ANTHROPIC_API_KEY). You can still view snapshots and enter the item in "Keep or salvage?".</p>{% endif %}
+<form method="post" action="{{ url_for('snapshots_take') }}"><button>Take one now</button></form>
+<div class="cards">
+{% for s in snaps %}
+<div class="card">
+  <a href="{{ url_for('snapshot_image', snap_id=s.id) }}" target="_blank"><img class="thumb" src="{{ url_for('snapshot_image', snap_id=s.id) }}" alt="snapshot {{ s.id }}" loading="lazy"></a>
+  <div class="muted">#{{ s.id }} · {{ s.created_at }} · {{ s.status }}</div>
+  {% if s.error %}<div class="err">{{ s.error }}</div>{% endif %}
+  {% if vision_on and s.status != 'read' %}<form method="post" action="{{ url_for('snapshots_read', snap_id=s.id) }}"><button>Read item with Claude</button></form>{% endif %}
+</div>
+{% else %}<p class="muted">No snapshots yet.</p>{% endfor %}
+</div>
+{% endblock %}

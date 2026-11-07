@@ -1,0 +1,16 @@
+{% extends 'base.html' %}{% block body %}
+<h1>Keep or salvage?</h1>
+<form method="post" class="stack">
+  <label>Item name <input name="name" value="{{ form.get('name','') }}" placeholder="Gauntlet of the Wastes" required autofocus></label>
+  <label>Type (optional) <input name="type" value="{{ form.get('type','') }}" placeholder="Ring, Belt, Mighty Weapon…"></label>
+  <label>Quality <select name="quality">
+    {% for q in ['normal','ancient','primal'] %}<option {{ 'selected' if form.get('quality')==q }}>{{ q }}</option>{% endfor %}
+  </select></label>
+  <label>Stats <textarea name="affixes" rows="4" placeholder="Shorthand: chc chd str ias&#10;or paste tooltip lines, one per line">{{ form.get('affixes','') }}</textarea></label>
+  <p class="muted">Shorthand: str vit chc chd ias cdr rcr life phys ww rend socket(x2) dmg elite area allres armor loh</p>
+  <div class="row"><button>Check</button>
+  <button name="save" value="1">Check &amp; save to</button>
+  <input name="location" placeholder="Stash tab 1" value="{{ form.get('location','') }}"></div>
+</form>
+{% if result %}{% with v = result %}{% include '_verdict.html' %}{% endwith %}{% endif %}
+{% endblock %}

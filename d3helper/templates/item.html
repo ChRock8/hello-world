@@ -1,0 +1,26 @@
+{% extends 'base.html' %}{% block body %}
+<h1>{{ item.name }} <span class="muted">{{ item.quality }} {{ item.type }}</span></h1>
+{% with v = verdict %}{% include '_verdict.html' %}{% endwith %}
+<p>Stats read: {% for k in item.affixes %}<span class="tag">{{ label(k) }}</span> {% else %}<span class="muted">none</span>{% endfor %}</p>
+<div class="two">
+<form method="post" class="stack">
+  <label>Name <input name="name" value="{{ item.name }}"></label>
+  <label>Type <input name="type" value="{{ item.type }}"></label>
+  <label>Quality <select name="quality">{% for q in ['normal','ancient','primal'] %}<option {{ 'selected' if item.quality==q }}>{{ q }}</option>{% endfor %}</select></label>
+  <label>Stats (tooltip lines or shorthand) <textarea name="affixes" rows="6">{{ item.raw_text }}</textarea></label>
+  <label>Location <input name="location" value="{{ item.location }}" list="locs"></label>
+  <datalist id="locs">{% for l in locations %}<option value="{{ l }}">{% endfor %}</datalist>
+  <label>Notes <textarea name="notes" rows="2">{{ item.notes }}</textarea></label>
+  <div class="row"><button>Save</button>
+  <button name="action" value="delete" class="danger" onclick="return confirm('Delete this item?')">Delete</button></div>
+</form>
+<div>
+  <form method="post" class="row">
+    <input type="hidden" name="action" value="equip">
+    <select name="slot">{% for s in slots %}<option value="{{ s }}" {{ 'selected' if s==(item.slot or verdict.slot) }}>{{ slot_labels[s] }}</option>{% endfor %}</select>
+    <button>Mark as equipped</button>
+  </form>
+  {% if item.snapshot %}<p class="muted">Read from a <a href="{{ url_for('snapshots') }}">snapshot</a>. Check the stats above match the tooltip.</p>{% endif %}
+</div>
+</div>
+{% endblock %}

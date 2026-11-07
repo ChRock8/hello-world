@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>D3 Helper</title><link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></head>
+<body>
+<nav>
+  <strong>D3 Helper</strong>
+  <a href="{{ url_for('dashboard') }}">Build</a>
+  <a href="{{ url_for('check') }}">Keep or salvage?</a>
+  <a href="{{ url_for('items') }}">Stash</a>
+  <a href="{{ url_for('snapshots') }}">Snapshots</a>
+  <a href="{{ url_for('import_gear') }}">Import</a>
+  <span class="muted">{{ build.name }}</span>
+</nav>
+<main>
+{% with msgs = get_flashed_messages() %}{% for m in msgs %}<div class="flash">{{ m }}</div>{% endfor %}{% endwith %}
+{% block body %}{% endblock %}
+</main></body></html>

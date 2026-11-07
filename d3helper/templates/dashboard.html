@@ -1,0 +1,35 @@
+{% extends 'base.html' %}{% block body %}
+<h1>{{ build.name }} <span class="muted">{{ done }}/{{ rows|length }} slots done</span></h1>
+<p class="muted">{{ build.source_note }}</p>
+<table>
+<tr><th>Slot</th><th>Target</th><th>Status</th><th>Current</th><th>Wanted stats</th></tr>
+{% for r in rows %}
+<tr class="s-{{ r.status }}">
+  <td>{{ slot_labels[r.slot] }}</td>
+  <td>{{ r.spec.item or '(flex)' }}{% if r.spec.verify %} <span class="tag">verify</span>{% endif %}</td>
+  <td><span class="pill {{ r.status }}">{{ r.status }}</span></td>
+  <td>{% if r.equipped %}<a href="{{ url_for('item_detail', item_id=r.equipped.id) }}">{{ r.equipped.name }}</a>
+      <span class="muted">{{ r.equipped.quality }} · {{ r.equipped.score }}/100</span>
+      {% elif r.owned %}<a href="{{ url_for('item_detail', item_id=r.owned[0].id) }}">in {{ r.owned[0].location }}</a>{% endif %}</td>
+  <td class="muted">{% for k, w in r.spec.get('affixes', {}).items() %}{{ label(k) }}{% if w >= 3 %}*{% endif %}{% if not loop.last %}, {% endif %}{% endfor %}</td>
+</tr>
+{% endfor %}
+</table>
+<p class="muted">* = must have</p>
+
+<h2>Kanai's Cube</h2>
+<div class="cards">
+{% for slot, name in build.cube.items() %}
+<form method="post" action="{{ url_for('cube_toggle') }}" class="card">
+  <input type="hidden" name="name" value="{{ name }}">
+  <div class="muted">{{ slot|title }}</div><div>{{ name }}</div>
+  <button>{{ 'Extracted ✓' if name in cube else 'Mark extracted' }}</button>
+</form>
+{% endfor %}
+</div>
+
+<h2>Gems &amp; skills</h2>
+<p>Legendary gems: {{ build.gems.legendary|join(', ') }}{% if build.gems.verify %} <span class="tag">verify</span>{% endif %}</p>
+<p>Skills: {{ build.skills.list|join(', ') }}{% if build.skills.verify %} <span class="tag">verify</span>{% endif %}</p>
+<ul>{% for n in build.notes %}<li>{{ n }}</li>{% endfor %}</ul>
+{% endblock %}

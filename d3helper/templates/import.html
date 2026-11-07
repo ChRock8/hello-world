@@ -1,0 +1,13 @@
+{% extends 'base.html' %}{% block body %}
+<h1>Import equipped gear</h1>
+{% if disabled %}
+<p>Set <code>BLIZZARD_CLIENT_ID</code> and <code>BLIZZARD_CLIENT_SECRET</code> in <code>.env</code> (free at develop.battle.net) to pull your hero's gear straight from Blizzard. See README.</p>
+{% else %}
+<form class="row"><input name="battletag" value="{{ tag }}" placeholder="Name#1234" required><button>Find heroes</button></form>
+{% if error %}<p class="err">{{ error }}</p>{% endif %}
+{% for h in heroes %}
+<form method="post" class="row"><input type="hidden" name="battletag" value="{{ tag }}"><input type="hidden" name="hero_id" value="{{ h.id }}">
+<span>{{ h.name }} · {{ h['class'] }} {{ h.level }}{% if h.seasonal %} · seasonal{% endif %}</span><button>Import gear</button></form>
+{% endfor %}
+{% endif %}
+{% endblock %}
